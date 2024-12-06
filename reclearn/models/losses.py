@@ -157,3 +157,11 @@ def hybrid_loss(pos_scores, neg_scores, alpha=0.2, temperature=0.05):
     # 结合两种损失
     total_loss = alpha * original_loss + (1 - alpha) * contrastive_loss
     return total_loss
+
+
+def deal_zero_loss(y_true, y_pred):
+    mask = tf.cast(tf.not_equal(y_true, 0), dtype=tf.float32)
+    loss_non_zero = tf.reduce_mean(tf.square((y_true - y_pred) * mask))
+    loss_zero = tf.reduce_mean(tf.square((y_true - y_pred) * (1 - mask)))
+    return 0.7 * loss_non_zero + 0.3 * loss_zero
+

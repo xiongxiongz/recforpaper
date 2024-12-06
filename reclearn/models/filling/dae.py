@@ -1,8 +1,11 @@
 import numpy as np
 import tensorflow as tf
+from time import time
 from tqdm import tqdm
 from tensorflow.keras.layers import Input, Dense, Dropout
 from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from reclearn.models.losses import deal_zero_loss
 
 
 # 加载数据
@@ -49,6 +52,30 @@ def build_denoising_autoencoder(input_dim, encoding_dim):
 
 
 if __name__ == '__main__':
-    train_path = "data/ml-1m/ml_seq_train.txt"
-    load_data("data/ml-1m/ml_seq_train.txt")
+    epochs = 100
+    train_path = "data/ml-1m/movie_seq.txt"
+    meta_path = "data/ml-1m/ml_seq_meta.txt"
+    data, max_item_seq = load_data(train_path)
+    with open(meta_path) as f:
+        max_user_num, max_item_num = [int(x) for x in f.readline().strip('\n').split('\t')]
+    data_matrix = generate_synthetic_data(origin_data=data, user_num=max_user_num, max_item_seq=max_item_seq)
+    data_matrix_with_noise = add_noise(data_matrix, mask_rate=0.3)
+
+    # 构建去噪自编码器
+    encoding_dim = 128
+    autoencoder = build_denoising_autoencoder(input_dim=max_item_seq, encoding_dim=encoding_dim)
+    autoencoder.compile(optimizer=Adam(learning_rate=0.001), loss=deal_zero_loss)
+    # 数据归一化
+    data_normalized = data_matrix / max_item_num
+    noisy_data_normalized = data_matrix_with_noise / max_item_num
+    results = []
+    for epoch in range(1, epochs + 1):
+        t1 = time()
+        autoencoder.fit(
+            x=noisy_data_normalized,
+            y=data_normalized,
+            batch_size=256,
+        )
+        t2 = time()
+
 
