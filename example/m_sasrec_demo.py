@@ -33,8 +33,8 @@ flags.DEFINE_string("test_path", "data/ml-1m/ml_seq_test.txt", "test path.")
 flags.DEFINE_string("meta_path", "data/ml-1m/ml_seq_meta.txt", "meta path.")
 flags.DEFINE_integer("embed_dim", 64, "The size of embedding dimension.")
 flags.DEFINE_float("embed_reg", 0.0, "The value of embedding regularization.")
-flags.DEFINE_integer("blocks", 1, "The Number of blocks.")
-flags.DEFINE_integer("num_heads", 1, "The Number of attention heads.")
+flags.DEFINE_integer("blocks", 2, "The Number of blocks.")
+flags.DEFINE_integer("num_heads", 2, "The Number of attention heads.")
 flags.DEFINE_integer("ffn_hidden_unit", 64, "Number of hidden unit in FFN.")
 flags.DEFINE_float("dnn_dropout", 0.2, "Float between 0 and 1. Dropout of user and item MLP layer.")
 flags.DEFINE_float("layer_norm_eps", 1e-6, "Small float added to variance to avoid dividing by zero.")
@@ -82,7 +82,7 @@ def main(argv):
     start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # 格式：20241130_123456
     model_name = f"sasrec_{start_time}"
     # TODO: 4. Build Model
-    model = SDSAS(**model_params)
+    model = SASRec(**model_params)
     model.compile(optimizer=Adam(learning_rate=FLAGS.learning_rate))
     # TODO: 5. Fit Model
     try:
