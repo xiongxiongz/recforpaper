@@ -40,5 +40,8 @@ def eval_rank(pred_y, metric_names, k=10):
             res = mrr(rank, k)
         else:
             break
-        res_dict[name] = res
+        res_dict[name] = res[0]
+        res_dict[name + '_20'] = res[1]
+        res_dict[name + '_40'] = res[2]
+        # res_dict[name] = res
     return res_dict

@@ -5,18 +5,25 @@ train SASRec demo
 @author: Ziyao Geng(zggzy1996@163.com)
 """
 import os
+
+import pandas as pd
+import tensorflow.python.distribute.distribution_strategy_context
 from absl import flags, app
 from time import time
 from tensorflow.keras.optimizers import Adam
 
 from reclearn.models.matching import SASRec
+from reclearn.models.matching.sd_sas import SDSAS
 from reclearn.data.datasets import movielens as ml
 from reclearn.evaluator import eval_pos_neg
+from data.utils.data_loader import DataGenerator
+
+import datetime
 
 FLAGS = flags.FLAGS
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
 
 # Setting training parameters
 flags.DEFINE_string("file_path", "data/ml-1m/ratings.dat", "file path.")
@@ -26,8 +33,8 @@ flags.DEFINE_string("test_path", "data/ml-1m/ml_seq_test.txt", "test path.")
 flags.DEFINE_string("meta_path", "data/ml-1m/ml_seq_meta.txt", "meta path.")
 flags.DEFINE_integer("embed_dim", 64, "The size of embedding dimension.")
 flags.DEFINE_float("embed_reg", 0.0, "The value of embedding regularization.")
-flags.DEFINE_integer("blocks", 2, "The Number of blocks.")
-flags.DEFINE_integer("num_heads", 2, "The Number of attention heads.")
+flags.DEFINE_integer("blocks", 1, "The Number of blocks.")
+flags.DEFINE_integer("num_heads", 1, "The Number of attention heads.")
 flags.DEFINE_integer("ffn_hidden_unit", 64, "Number of hidden unit in FFN.")
 flags.DEFINE_float("dnn_dropout", 0.2, "Float between 0 and 1. Dropout of user and item MLP layer.")
 flags.DEFINE_float("layer_norm_eps", 1e-6, "Small float added to variance to avoid dividing by zero.")
@@ -50,10 +57,12 @@ def main(argv):
     else:
         train_path, val_path, test_path, meta_path = FLAGS.train_path, FLAGS.val_path, FLAGS.test_path, FLAGS.meta_path
     with open(meta_path) as f:
-        _, max_item_num = [int(x) for x in f.readline().strip('\n').split('\t')]
+        max_user_num, max_item_num = [int(x) for x in f.readline().strip('\n').split('\t')]
     # TODO: 2. Load Sequence Data
     train_data = ml.load_seq_data(train_path, "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
+    train_generator = DataGenerator(train_data, FLAGS.batch_size)
     val_data = ml.load_seq_data(val_path, "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
+    val_generator = DataGenerator(val_data, FLAGS.batch_size)
     test_data = ml.load_seq_data(test_path, "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num)
     # TODO: 3. Set Model Hyper Parameters.
     model_params = {
@@ -69,22 +78,43 @@ def main(argv):
         'gamma': FLAGS.gamma,
         'embed_reg': FLAGS.embed_reg
     }
+    # 获取当前时间作为模型文件名后缀
+    start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # 格式：20241130_123456
+    model_name = f"sasrec_{start_time}"
     # TODO: 4. Build Model
-    model = SASRec(**model_params)
+    model = SDSAS(**model_params)
     model.compile(optimizer=Adam(learning_rate=FLAGS.learning_rate))
     # TODO: 5. Fit Model
-    for epoch in range(1, FLAGS.epochs + 1):
-        t1 = time()
-        model.fit(
-            x=train_data,
-            epochs=1,
-            validation_data=val_data,
-            batch_size=FLAGS.batch_size
-        )
-        t2 = time()
-        eval_dict = eval_pos_neg(model, test_data, ['hr', 'mrr', 'ndcg'], FLAGS.k, FLAGS.batch_size)
-        print('Iteration %d Fit [%.1f s], Evaluate [%.1f s]: HR = %.4f, MRR = %.4f, NDCG = %.4f'
-              % (epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg']))
+    try:
+        results = []
+        for epoch in range(1, FLAGS.epochs + 1):
+            t1 = time()
+            model.fit(
+                x=train_generator,
+                epochs=1,
+                validation_data=val_generator,
+                use_multiprocessing=True,
+                workers=4,
+                # batch_size=FLAGS.batch_size
+            )
+            t2 = time()
+            eval_dict = eval_pos_neg(model, test_data, ['hr', 'mrr', 'ndcg'], FLAGS.k, FLAGS.batch_size)
+            '''
+            print('Iteration %d Fit [%.1f s], Evaluate [%.1f s]: HR = %.4f, MRR = %.4f, NDCG = %.4f'
+                  % (epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg']))
+            '''
+            # @10, @20, @40
+            print('Iteration %d Fit [%.1f s], Evaluate [%.1f s]: HR_10 = %.4f, MRR@10 = %.4f, NDCG@10 = %.4f,'
+                  ' HR@20 = %.4f, MRR@20 = %.4f, NDCG@20 = %.4f, HR@40 = %.4f, MRR@40 = %.4f, NDCG@40 = %.4f'
+                  % (epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg'], eval_dict['hr_20'], eval_dict['mrr_20'], eval_dict['ndcg_20'], eval_dict['hr_40'], eval_dict['mrr_40'], eval_dict['ndcg_40']))
+            results.append([epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg'], eval_dict['hr_20'], eval_dict['mrr_20'], eval_dict['ndcg_20'], eval_dict['hr_40'], eval_dict['mrr_40'], eval_dict['ndcg_40']])
+        # write logs
+        pd.DataFrame(results, columns=['Iteration', 'fit_time', 'evaluate_time', 'hr@10', 'mrr@10', 'ndcg@10', 'hr@20', 'mrr@20', 'ndcg@20', 'hr@40', 'mrr@40', 'ndcg@40']).\
+            to_csv("logs/SASRec_log_{}_maxlen_{}_dim_{}_blocks_{}_heads_{}.csv".format(start_time, FLAGS.seq_len, FLAGS.embed_dim, FLAGS.blocks, FLAGS.num_heads), index=False)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        model.save(model_name, save_format='tf')
 
 
 if __name__ == '__main__':

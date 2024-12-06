@@ -10,6 +10,69 @@ from tensorflow.keras.regularizers import l2
 
 from reclearn.layers.utils import scaled_dot_product_attention, split_heads, index_mapping
 
+import tensorflow as tf
+from tensorflow.keras.layers import Dense, GlobalAveragePooling1D
+
+
+class SEBlock(tf.keras.layers.Layer):
+    def __init__(self, embedding_dim, reduction_ratio=16):
+        super(SEBlock, self).__init__()
+        self.embedding_dim = embedding_dim
+        self.reduction_ratio = reduction_ratio
+
+        # Squeeze and Excitation layers
+        self.fc1 = Dense(embedding_dim // reduction_ratio, activation='relu')
+        self.fc2 = Dense(embedding_dim, activation='sigmoid')
+
+    def call(self, inputs):
+        """
+        Args:
+            inputs: Tensor, shape (batch_size, seq_len, embedding_dim)
+        Returns:
+            Tensor, shape (batch_size, seq_len, embedding_dim)
+        """
+        # Squeeze: Global Max or Average Pooling on time dimension
+        squeeze = tf.reduce_max(inputs, axis=1)  # shape: (batch_size, embedding_dim)
+
+        # Excitation: Fully connected layers
+        excitation = self.fc1(squeeze)  # shape: (batch_size, embedding_dim // reduction_ratio)
+        excitation = self.fc2(excitation)  # shape: (batch_size, embedding_dim)
+
+        # Reweight: Scale the original inputs
+        excitation = tf.expand_dims(excitation, axis=1)  # shape: (batch_size, 1, embedding_dim)
+        outputs = inputs * excitation  # shape: (batch_size, seq_len, embedding_dim)
+        return outputs
+
+
+class FeatureSEBlock(tf.keras.layers.Layer):
+    def __init__(self, seq_len, reduction_ratio=25):
+        super(FeatureSEBlock, self).__init__()
+        self.seq_len = seq_len
+        self.reduction_ratio = reduction_ratio
+
+        # Squeeze and Excitation layers
+        self.fc1 = Dense(seq_len // reduction_ratio, activation='relu')
+        self.fc2 = Dense(seq_len, activation='sigmoid')
+
+    def call(self, inputs):
+        """
+        Args:
+            inputs: Tensor, shape (batch_size, seq_len, embedding_dim)
+        Returns:
+            Tensor, shape (batch_size, seq_len, embedding_dim)
+        """
+        # Squeeze: Global Max or Average Pooling on feature dimension
+        squeeze = tf.reduce_max(inputs, axis=2)  # shape: (batch_size, seq_len)
+
+        # Excitation: Fully connected layers
+        excitation = self.fc1(squeeze)  # shape: (batch_size, seq_len // reduction_ratio)
+        excitation = self.fc2(excitation)  # shape: (batch_size, seq_len)
+
+        # Reweight: Scale the original inputs
+        excitation = tf.expand_dims(excitation, axis=2)  # shape: (batch_size, seq_len, 1)
+        outputs = inputs * excitation  # shape: (batch_size, seq_len, embedding_dim)
+        return outputs
+
 
 class Linear(Layer):
     def __init__(self, feature_length, w_reg=1e-6):

@@ -16,6 +16,7 @@ def scaled_dot_product_attention(q, k, v, mask):
     scaled_att_logits = mat_qk / tf.sqrt(dk)
 
     paddings = tf.ones_like(scaled_att_logits) * (-2 ** 32 + 1)  # (None, seq_len, seq_len)
+    # 如果mask的值为0，用负无穷填充，否则保留原来的值
     outputs = tf.where(tf.equal(mask, tf.zeros_like(mask)), paddings, scaled_att_logits)  # (None, seq_len, seq_len)
     # softmax
     outputs = tf.nn.softmax(logits=outputs)  # (None, seq_len, seq_len)

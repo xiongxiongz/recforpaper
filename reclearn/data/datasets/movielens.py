@@ -105,7 +105,7 @@ def load_data(file_path, neg_num, max_item_num):
     return {'user': data[:, 0].astype(int), 'pos_item': data[:, 1].astype(int), 'neg_item': np.array(neg_items)}
 
 
-def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=False, contain_time=False):
+def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=True, contain_time=False):
     """load sequence movielens dataset.
     Args:
         :param file_path: A string. The file path.
@@ -135,7 +135,8 @@ def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=
                         tmp2 = [0] * (seq_len - i - 1) + time_seq[:i + 1]
                     # gen_neg = _gen_negative_samples(neg_num, click_seq, max_item_num)
                     # neg_item = [neg_item for neg_item in gen_neg]
-                    neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
+                    # neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
+                    neg_item = gen_negative_samples_except_pos(neg_num, click_seq[i + 1], max_item_num)
                     users.append(int(user))
                     click_seqs.append(tmp)
                     time_seqs.append(tmp2)
@@ -154,7 +155,8 @@ def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=
                     tmp2 = [0] * (seq_len - len(time_seq)) + time_seq[:]
                 # gen_neg = _gen_negative_samples(neg_num, click_seq, max_item_num)
                 # neg_item = [neg_item for neg_item in gen_neg]
-                neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
+                # neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
+                neg_item = gen_negative_samples_except_pos(neg_num, pos_item, max_item_num)
                 users.append(int(user))
                 click_seqs.append(tmp)
                 time_seqs.append(tmp2)
@@ -177,6 +179,17 @@ def _gen_negative_samples(neg_num, item_list, max_num):
         # while neg in set(item_list):
         neg = random.randint(1, max_num)
         yield neg
+
+
+def gen_negative_samples_except_pos(neg_num, pos_item, max_num):
+    neg_item = []
+    while len(neg_item) != neg_num:
+        neg = random.randint(1, max_num)
+        if neg == pos_item:
+            continue
+        else:
+            neg_item.append(neg)
+    return neg_item
 
 
 """
