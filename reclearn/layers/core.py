@@ -15,7 +15,7 @@ from tensorflow.keras.layers import Dense, GlobalAveragePooling1D
 
 
 class SEBlock(tf.keras.layers.Layer):
-    def __init__(self, embedding_dim, reduction_ratio=16):
+    def __init__(self, embedding_dim, reduction_ratio=4):
         super(SEBlock, self).__init__()
         self.embedding_dim = embedding_dim
         self.reduction_ratio = reduction_ratio

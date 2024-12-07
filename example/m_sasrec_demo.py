@@ -23,7 +23,7 @@ import datetime
 FLAGS = flags.FLAGS
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 # Setting training parameters
 flags.DEFINE_string("file_path", "data/ml-1m/ratings.dat", "file path.")

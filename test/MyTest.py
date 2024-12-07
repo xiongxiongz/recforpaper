@@ -32,6 +32,29 @@ def generate_movie_seq():
             f1.write(' '.join(hist[:-2]) + '\n')
 
 
+def generate_movie_vew_count():
+    # 处理观影次数
+    file_path = "/home/cqj/zzh/recforpaper/data/ml-1m/movie_seq.txt"
+    movie_view_count_path = "/home/cqj/zzh/recforpaper/data/ml-1m/movie_view_count.txt"
+    movie_view_count = {}
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+        for line in tqdm(lines):
+            items = line.strip().split(" ")
+            for item in items:
+                if int(item) not in movie_view_count:
+                    movie_view_count[int(item)] = 1
+                else:
+                    movie_view_count[int(item)] += 1
+        with open(movie_view_count_path, 'w') as f1:
+            for line in tqdm(lines):
+                items = line.strip().split(" ")
+                temp = []
+                for item in items:
+                    temp.append(str(movie_view_count[int(item)]))
+                f1.write(' '.join(temp) + '\n')
+
+
 if __name__ == '__main__':
     # 向量空间：item_embedding
     '''
@@ -49,4 +72,4 @@ if __name__ == '__main__':
     '''
     # a = tf.fill([3, 4], 3.)
     # b = tf.fill([3, 4], 2.)
-
+    generate_movie_vew_count()
