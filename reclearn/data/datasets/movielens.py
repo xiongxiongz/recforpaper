@@ -137,7 +137,7 @@ def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=
                     # neg_item = [neg_item for neg_item in gen_neg]
                     # neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
                     neg_item = gen_negative_samples_except_pos(neg_num, click_seq[i + 1], max_item_num)
-                    users.append(int(user))
+                    users.append([int(user)])
                     click_seqs.append(tmp)
                     time_seqs.append(tmp2)
                     pos_items.append(click_seq[i + 1])
@@ -157,7 +157,7 @@ def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=
                 # neg_item = [neg_item for neg_item in gen_neg]
                 # neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
                 neg_item = gen_negative_samples_except_pos(neg_num, pos_item, max_item_num)
-                users.append(int(user))
+                users.append([int(user)])
                 click_seqs.append(tmp)
                 time_seqs.append(tmp2)
                 pos_items.append(int(pos_item))

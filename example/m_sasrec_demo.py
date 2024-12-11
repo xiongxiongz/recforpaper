@@ -7,13 +7,11 @@ train SASRec demo
 import os
 
 import pandas as pd
-import tensorflow.python.distribute.distribution_strategy_context
 from absl import flags, app
 from time import time
 from tensorflow.keras.optimizers import Adam
 
 from reclearn.models.matching import SASRec
-from reclearn.models.matching.sd_sas import SDSAS
 from reclearn.data.datasets import movielens as ml
 from reclearn.evaluator import eval_pos_neg
 from data.utils.data_loader import DataGenerator
@@ -67,6 +65,7 @@ def main(argv):
     # TODO: 3. Set Model Hyper Parameters.
     model_params = {
         'item_num': max_item_num + 1,
+        'user_num': max_user_num + 1,
         'embed_dim': FLAGS.embed_dim,
         'seq_len': FLAGS.seq_len,
         'blocks': FLAGS.blocks,

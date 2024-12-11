@@ -25,6 +25,26 @@ def get_loss(pos_scores, neg_scores, loss_name, gamma=None):
     return loss
 
 
+def get_loss_with_rl(pos_scores, neg_scores, loss_name, rl_loss, user_mask, gamma=None):
+    """Get loss scores.
+    Args:
+        :param pos_scores: A tensor with shape of [batch_size, 1].
+        :param neg_scores: A tensor with shape of [batch_size, neg_num].
+        :param loss_name: A string such as 'bpr_loss', 'hing_loss' and etc.
+        :param rl_loss
+        :param gamma: A scalar(int). If loss_name == 'hinge_loss', the gamma must be valid.
+    :return:
+    """
+    # pos_scores = tf.tile(pos_scores, [1, neg_scores.shape[1]])
+    if loss_name == 'bpr_loss':
+        loss = bpr_loss(pos_scores, neg_scores)
+    elif loss_name == 'hinge_loss':
+        loss = hinge_loss(pos_scores, neg_scores, gamma)
+    else:
+        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, rl_loss, user_mask)
+    return loss
+
+
 def get_loss_with_emb(pos_scores, neg_scores, loss_name, y_pred, y_true, norm_emb, gamma=None):
     """Get loss scores.
     Args:
@@ -83,6 +103,31 @@ def binary_cross_entropy_loss(pos_scores, neg_scores):
     """
     loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores)) - tf.math.log(1 - tf.nn.sigmoid(neg_scores))) / 2
     return loss
+
+
+def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits, user_mask):
+    """binary cross entropy loss.
+    Args:
+        :param pos_scores: A tensor with shape of [batch_size, neg_num].
+        :param neg_scores: A tensor with shape of [batch_size, neg_num].
+        :param rl_loss
+    :return:
+    """
+    loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores)) - tf.math.log(1 - tf.nn.sigmoid(neg_scores))) / 2
+    rl_loss = cal_rl_loss(logits)
+    # l1正则化
+    regularization_loss = 0.1 * tf.reduce_sum(user_mask)
+    return loss + rl_loss + regularization_loss
+
+
+def cal_rl_loss(logits, k=10):
+    pred_y = - logits
+    pred_y = tf.argsort(tf.argsort(pred_y))
+    pred_y = tf.slice(pred_y, begin=[0, 0], size=[-1, 1])
+    pred_y = tf.cast(pred_y, tf.float32)
+    loss_matrix = tf.where(pred_y < 10.0, 1.0 / (tf.math.log(pred_y + 2.0) / tf.math.log(2.0)), tf.zeros_like(pred_y))
+    loss = tf.reduce_mean(loss_matrix)
+    return - loss
 
 
 def binary_cross_entropy_loss_with_emb(pos_scores, neg_scores, y_pred, y_true, norm_emb, alpha=0.8, beta=0.2, reg=0.01):

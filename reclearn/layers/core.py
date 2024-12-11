@@ -144,16 +144,29 @@ class MultiHeadAttention(Layer):
         k = self.wk(k)  # (None, seq_len, d_model)
         v = self.wv(v)  # (None, seq_len, d_model)
         # split d_model into num_heads * depth
+        '''
         seq_len, d_model = q.shape[1], q.shape[2]
         q = split_heads(q, seq_len, self.num_heads, q.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
         k = split_heads(k, seq_len, self.num_heads, k.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
         v = split_heads(v, seq_len, self.num_heads, v.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
         # mask
         mask = tf.tile(tf.expand_dims(mask, axis=1), [1, self.num_heads, 1, 1])  # (None, num_heads, seq_len, 1)
-        # attention
-        scaled_attention = scaled_dot_product_attention(q, k, v, mask)  # (None, num_heads, seq_len, d_model // num_heads)
+        '''
+        par_output = []
+        dimension_per_head = self.d_model // self.num_heads
+        for i in range(self.num_heads):
+            # par_q = tf.slice(q, begin=[0, 0, dimension_per_head * i], size=[-1, -1, dimension_per_head])
+            # par_k = tf.slice(k, begin=[0, 0, dimension_per_head * i], size=[-1, -1, dimension_per_head])
+            # par_v = tf.slice(v, begin=[0, 0, dimension_per_head * i], size=[-1, -1, dimension_per_head])
+            par_q = q[..., dimension_per_head * i: dimension_per_head * (i+1)]
+            par_k = k[..., dimension_per_head * i: dimension_per_head * (i+1)]
+            par_v = v[..., dimension_per_head * i: dimension_per_head * (i+1)]
+            # attention
+            scaled_attention = scaled_dot_product_attention(par_q, par_k, par_v, mask)  # (None, num_heads, seq_len, d_model // num_heads)
+            par_output.append(scaled_attention)
+        outputs = tf.concat(par_output, axis=-1)
         # reshape
-        outputs = tf.reshape(tf.transpose(scaled_attention, [0, 2, 1, 3]), [-1, seq_len, d_model])  # (None, seq_len, d_model)
+        # outputs = tf.reshape(tf.transpose(scaled_attention, [0, 2, 1, 3]), [-1, seq_len, d_model])  # (None, seq_len, d_model)
         return outputs
 
 

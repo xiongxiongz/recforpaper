@@ -10,11 +10,11 @@ from tensorflow.keras.layers import Layer, Dense, LayerNormalization, Dropout, E
 from tensorflow.keras.regularizers import l2
 
 from reclearn.layers import TransformerEncoder
-from reclearn.models.losses import get_loss
+from reclearn.models.losses import get_loss, get_loss_with_rl
 
 
 class SASRec(Model):
-    def __init__(self, item_num, embed_dim, seq_len=100, blocks=1, num_heads=1, ffn_hidden_unit=128,
+    def __init__(self, item_num, user_num, embed_dim, seq_len=100, blocks=1, num_heads=1, ffn_hidden_unit=128,
                  dnn_dropout=0., layer_norm_eps=1e-6, use_l2norm=False,
                  loss_name="binary_cross_entropy_loss", gamma=0.5, embed_reg=0., seed=None):
         """Self-Attentive Sequential Recommendation
@@ -45,6 +45,16 @@ class SASRec(Model):
                                        output_dim=embed_dim,
                                        embeddings_initializer='random_normal',
                                        embeddings_regularizer=l2(embed_reg))
+        self.user_embedding = Embedding(input_dim=user_num,
+                                       output_dim=embed_dim,
+                                       input_length=1,
+                                       embeddings_initializer='random_normal',
+                                       embeddings_regularizer=l2(embed_reg))
+        self.layer_norm = LayerNormalization(epsilon=1e-6)
+        self.rl_dense1 = Dense(128, activation='relu')
+        self.rl_dense2 = Dense(128, activation='relu')
+        self.rl_dense3 = Dense(embed_dim, activation='linear')
+        self.mask_dense = Dense(embed_dim, activation='sigmoid')
         self.dropout = Dropout(dnn_dropout)
         # multi encoder block
         self.encoder_layer = [TransformerEncoder(embed_dim, num_heads, ffn_hidden_unit,
@@ -62,12 +72,21 @@ class SASRec(Model):
     def call(self, inputs):
         # seq info
         seq_embed = self.item_embedding(inputs['click_seq'])  # (None, seq_len, dim)
+        user_embed = self.user_embedding(inputs['user'])    # (None, 1, dim)
         # mask
         mask = tf.expand_dims(tf.cast(tf.not_equal(inputs['click_seq'], 0), dtype=tf.float32), axis=-1)  # (None, seq_len, 1)
+        delta_u = self.rl_dense1(user_embed)
+        delta_u = self.rl_dense2(delta_u)
+        delta_u = self.rl_dense3(delta_u)
+        delta_u = self.layer_norm(delta_u)
+        extra_user_embed = tf.multiply(user_embed, delta_u)  # (None, 1, embed_dim)
+        # extra_user_embed mask正则化
+        user_mask = self.mask_dense(extra_user_embed)
+        extra_user_embed = tf.multiply(user_embed, user_mask)  # (None, 1, embed_dim)
+        seq_embed = seq_embed + extra_user_embed
         # pos encoding
         pos_encoding = tf.expand_dims(self.pos_embedding(tf.range(self.seq_len)), axis=0)  # (1, seq_len, embed_dim)
         seq_embed += pos_encoding  # (None, seq_len, embed_dim), broadcasting
-        
         seq_embed = self.dropout(seq_embed)
         att_outputs = seq_embed  # (None, seq_len, embed_dim)
         att_outputs *= mask
@@ -89,8 +108,9 @@ class SASRec(Model):
         pos_scores = tf.reduce_sum(tf.multiply(user_info, tf.expand_dims(pos_info, axis=1)), axis=-1)  # (None, 1)
         neg_scores = tf.reduce_sum(tf.multiply(user_info, neg_info), axis=-1)  # (None, neg_num)
         # loss
-        self.add_loss(get_loss(pos_scores, neg_scores, self.loss_name, self.gamma))
+        # self.add_loss(get_loss(pos_scores, neg_scores, self.loss_name, self.gamma))
         logits = tf.concat([pos_scores, neg_scores], axis=-1)
+        self.add_loss(get_loss_with_rl(pos_scores, neg_scores, self.loss_name, logits, user_mask, self.gamma))
         return logits
 
     def summary(self):
