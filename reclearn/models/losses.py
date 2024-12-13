@@ -25,7 +25,7 @@ def get_loss(pos_scores, neg_scores, loss_name, gamma=None):
     return loss
 
 
-def get_loss_with_rl(pos_scores, neg_scores, loss_name, rl_loss, user_mask, gamma=None):
+def get_loss_with_rl(pos_scores, neg_scores, loss_name, logits, user_mask, gamma=None):
     """Get loss scores.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, 1].
@@ -41,7 +41,7 @@ def get_loss_with_rl(pos_scores, neg_scores, loss_name, rl_loss, user_mask, gamm
     elif loss_name == 'hinge_loss':
         loss = hinge_loss(pos_scores, neg_scores, gamma)
     else:
-        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, rl_loss, user_mask)
+        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits, user_mask)
     return loss
 
 
