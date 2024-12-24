@@ -7,6 +7,7 @@ import tensorflow as tf
 from tqdm import tqdm
 from collections import defaultdict
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+import json
 
 MAX_ITEM_NUM = 3953
 MAX_USER_NUM = 6041
@@ -105,6 +106,61 @@ def load_data(file_path, neg_num, max_item_num):
     return {'user': data[:, 0].astype(int), 'pos_item': data[:, 1].astype(int), 'neg_item': np.array(neg_items)}
 
 
+def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num):
+    users, click_seqs, pos_items, neg_items = [], [], [], []
+    usernum = 0
+    itemnum = 0
+    user2seq = defaultdict(list)
+    user_seq = {}
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+        for line in tqdm(lines):
+            u, i = line.strip().split(' ')
+            u = int(u)
+            i = int(i)
+            usernum = max(u, usernum)
+            itemnum = max(i, itemnum)
+            user2seq[u].append(i)
+        print('usernum: ', usernum)
+        print('itemnum: ', itemnum)
+    for user in tqdm(user2seq):
+        nfeedback = len(user2seq[user])
+        if nfeedback >= 3:
+            if mode == 'train':
+                user_seq[user] = user2seq[user][:-2]
+            elif mode == 'val':
+                user_seq[user] = user2seq[user][:-1]
+            else:
+                user_seq[user] = user2seq[user]
+    for user in tqdm(user_seq):
+        if mode == 'train':
+            for i in range(len(user_seq[user])-1):
+                if i + 1 >= seq_len:
+                    tmp = user_seq[user][i + 1 - seq_len:i + 1]
+                else:
+                    tmp = [0] * (seq_len - i - 1) + user_seq[user][:i + 1]
+                neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+                users.append([user])
+                click_seqs.append(tmp)
+                pos_items.append(user_seq[user][i + 1])
+                neg_items.append(neg_item)
+        else:
+            if len(user_seq[user][:-1]) >= seq_len:
+                tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
+            else:
+                tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
+            neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+            users.append([user])
+            click_seqs.append(tmp)
+            pos_items.append(user_seq[user][-1])
+            neg_items.append(neg_item)
+    data = list(zip(users, click_seqs, pos_items, neg_items))
+    random.shuffle(data)
+    users, click_seqs, pos_items, neg_items = zip(*data)
+    data = {'user': np.array(users), 'click_seq': np.array(click_seqs), 'pos_item': np.array(pos_items), 'neg_item': np.array(neg_items)}
+    return data
+
+
 def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=True, contain_time=False):
     """load sequence movielens dataset.
     Args:
@@ -117,7 +173,11 @@ def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=
         :param contain_time: A boolean. Whether including time sequence input or not.
     :return: A dict. data.
     """
-    users, click_seqs, time_seqs, pos_items, neg_items = [], [], [], [], []
+    movies_genres = {}
+    max_genre_num = 6
+    with open('data/ml-1m/movies_genres.json', 'r', encoding='utf-8') as json_f:
+        movies_genres = json.load(json_f)
+    users, click_seqs, time_seqs, pos_items, neg_items, genre_index_seqs = [], [], [], [], [], []
     with open(file_path) as f:
         lines = f.readlines()
         for line in tqdm(lines):
@@ -136,12 +196,23 @@ def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=
                     # gen_neg = _gen_negative_samples(neg_num, click_seq, max_item_num)
                     # neg_item = [neg_item for neg_item in gen_neg]
                     # neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
-                    neg_item = gen_negative_samples_except_pos(neg_num, click_seq[i + 1], max_item_num)
+                    '''
+                    genre_index_seq = []
+                    for item in tmp:
+                        origin_genre = [18] * max_genre_num
+                        if str(item) in movies_genres:
+                            origin_genre[:len(movies_genres[str(item)])] = movies_genres[str(item)]
+                        genre_index_seq.append(origin_genre)
+                    '''
+                    neg_item = gen_negative_samples_except_pos(neg_num, click_seq, max_item_num)
                     users.append([int(user)])
                     click_seqs.append(tmp)
                     time_seqs.append(tmp2)
                     pos_items.append(click_seq[i + 1])
                     neg_items.append(neg_item)
+                    '''
+                    genre_index_seqs.append(genre_index_seq)
+                    '''
             else:  # "val", "test"
                 user, click_seq, time_seq, pos_item = line.split('\t')
                 click_seq = click_seq.split(' ')
@@ -156,15 +227,27 @@ def load_seq_data(file_path, mode, seq_len, neg_num, max_item_num, contain_user=
                 # gen_neg = _gen_negative_samples(neg_num, click_seq, max_item_num)
                 # neg_item = [neg_item for neg_item in gen_neg]
                 # neg_item = [random.randint(1, max_item_num) for _ in range(neg_num)]
-                neg_item = gen_negative_samples_except_pos(neg_num, pos_item, max_item_num)
+                '''
+                genre_index_seq = []
+                for item in tmp:
+                    origin_genre = [18] * max_genre_num
+                    if str(item) in movies_genres:
+                        origin_genre[:len(movies_genres[str(item)])] = movies_genres[str(item)]
+                    genre_index_seq.append(origin_genre)
+                '''
+                neg_item = gen_negative_samples_except_pos(neg_num, click_seq, max_item_num)
                 users.append([int(user)])
                 click_seqs.append(tmp)
                 time_seqs.append(tmp2)
                 pos_items.append(int(pos_item))
                 neg_items.append(neg_item)
+                '''
+                genre_index_seqs.append(genre_index_seq)
+                '''
     data = list(zip(users, click_seqs, time_seqs, pos_items, neg_items))
     random.shuffle(data)
     users, click_seqs, time_seqs, pos_items, neg_items = zip(*data)
+    #       , 'genre_index_seq': np.array(genre_index_seqs)
     data = {'click_seq': np.array(click_seqs), 'pos_item': np.array(pos_items), 'neg_item': np.array(neg_items)}
     if contain_user:
         data['user'] = np.array(users)
@@ -181,14 +264,13 @@ def _gen_negative_samples(neg_num, item_list, max_num):
         yield neg
 
 
-def gen_negative_samples_except_pos(neg_num, pos_item, max_num):
+def gen_negative_samples_except_pos(neg_num, click_seq, max_num):
     neg_item = []
     while len(neg_item) != neg_num:
         neg = random.randint(1, max_num)
-        if neg == pos_item:
-            continue
-        else:
-            neg_item.append(neg)
+        while neg in click_seq:
+            neg = random.randint(1, max_num)
+        neg_item.append(neg)
     return neg_item
 
 

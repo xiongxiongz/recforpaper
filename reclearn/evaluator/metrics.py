@@ -22,6 +22,9 @@ def hr(rank, k):
             res_20 += 1
         if r < k * 4:
             res_40 += 1
+    print("res:", res)
+    print("len(rank):", len(rank))
+    print("res / len(rank):", res / len(rank))
     return [res / len(rank), res_20 / len(rank), res_40 / len(rank)]
 
 

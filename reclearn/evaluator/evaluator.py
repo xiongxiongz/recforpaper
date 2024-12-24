@@ -18,6 +18,7 @@ def eval_pos_neg(model, test_data, metric_names, k=10, batch_size=None):
     :return: A result dict such as {'hr':, 'ndcg':, ...}
     """
     pred_y = - model.predict(test_data, batch_size)
+    print("pred_y:", pred_y.shape)
     return eval_rank(pred_y, metric_names, k)
 
 
@@ -30,6 +31,7 @@ def eval_rank(pred_y, metric_names, k=10):
         :return: A result dict such as {'hr':, 'ndcg':, ...}
     """
     rank = pred_y.argsort().argsort()[:, 0]
+    print("rank:", rank)
     res_dict = {}
     for name in metric_names:
         if name == 'hr':

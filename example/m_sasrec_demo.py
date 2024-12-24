@@ -21,7 +21,7 @@ import datetime
 FLAGS = flags.FLAGS
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 # Setting training parameters
 flags.DEFINE_string("file_path", "data/ml-1m/ratings.dat", "file path.")
@@ -29,7 +29,8 @@ flags.DEFINE_string("train_path", "data/ml-1m/ml_seq_train.txt", "train path. If
 flags.DEFINE_string("val_path", "data/ml-1m/ml_seq_val.txt", "val path.")
 flags.DEFINE_string("test_path", "data/ml-1m/ml_seq_test.txt", "test path.")
 flags.DEFINE_string("meta_path", "data/ml-1m/ml_seq_meta.txt", "meta path.")
-flags.DEFINE_integer("embed_dim", 64, "The size of embedding dimension.")
+flags.DEFINE_integer("item_dim", 64, "The size of item embedding dimension.")
+flags.DEFINE_integer("user_dim", 50, "The size of user embedding dimension.")
 flags.DEFINE_float("embed_reg", 0.0, "The value of embedding regularization.")
 flags.DEFINE_integer("blocks", 2, "The Number of blocks.")
 flags.DEFINE_integer("num_heads", 2, "The Number of attention heads.")
@@ -46,7 +47,7 @@ flags.DEFINE_integer("epochs", 20, "train steps.")
 flags.DEFINE_integer("batch_size", 512, "Batch Size.")
 flags.DEFINE_integer("test_neg_num", 100, "The number of test negative samples.")
 flags.DEFINE_integer("k", 10, "recall k items at test stage.")
-
+flags.DEFINE_integer("seed", None, "random seed.")
 
 def main(argv):
     # TODO: 1. Split Data
@@ -54,19 +55,24 @@ def main(argv):
         train_path, val_path, test_path, meta_path = ml.split_seq_data(file_path=FLAGS.file_path)
     else:
         train_path, val_path, test_path, meta_path = FLAGS.train_path, FLAGS.val_path, FLAGS.test_path, FLAGS.meta_path
-    with open(meta_path) as f:
+    # with open(meta_path) as f:
+    with open("data/ml1m/ml_seq_meta.txt") as f:
         max_user_num, max_item_num = [int(x) for x in f.readline().strip('\n').split('\t')]
     # TODO: 2. Load Sequence Data
-    train_data = ml.load_seq_data(train_path, "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
+    # train_data = ml.load_seq_data(train_path, "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
+    train_data = ml.load_txt_data("data/ml1m/ml1m.txt", "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
     train_generator = DataGenerator(train_data, FLAGS.batch_size)
-    val_data = ml.load_seq_data(val_path, "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
+    # val_data = ml.load_seq_data(val_path, "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
+    val_data = ml.load_txt_data("data/ml1m/ml1m.txt", "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
     val_generator = DataGenerator(val_data, FLAGS.batch_size)
-    test_data = ml.load_seq_data(test_path, "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num)
+    # test_data = ml.load_seq_data(test_path, "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num)
+    test_data = ml.load_txt_data("data/ml1m/ml1m.txt", "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num)
     # TODO: 3. Set Model Hyper Parameters.
     model_params = {
         'item_num': max_item_num + 1,
         'user_num': max_user_num + 1,
-        'embed_dim': FLAGS.embed_dim,
+        'item_dim': FLAGS.item_dim,
+        'user_dim': FLAGS.user_dim,
         'seq_len': FLAGS.seq_len,
         'blocks': FLAGS.blocks,
         'num_heads': FLAGS.num_heads,
@@ -75,7 +81,8 @@ def main(argv):
         'use_l2norm': FLAGS.use_l2norm,
         'loss_name': FLAGS.loss_name,
         'gamma': FLAGS.gamma,
-        'embed_reg': FLAGS.embed_reg
+        'embed_reg': FLAGS.embed_reg,
+        'seed': FLAGS.seed
     }
     # 获取当前时间作为模型文件名后缀
     start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # 格式：20241130_123456
@@ -97,7 +104,7 @@ def main(argv):
                 # batch_size=FLAGS.batch_size
             )
             t2 = time()
-            eval_dict = eval_pos_neg(model, test_data, ['hr', 'mrr', 'ndcg'], FLAGS.k, FLAGS.batch_size)
+            eval_dict = eval_pos_neg(model, test_data, ['hr', 'mrr', 'ndcg'], FLAGS.k)
             '''
             print('Iteration %d Fit [%.1f s], Evaluate [%.1f s]: HR = %.4f, MRR = %.4f, NDCG = %.4f'
                   % (epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg']))

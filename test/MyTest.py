@@ -1,10 +1,9 @@
+import json
 import random
 
-import tensorflow as tf
-from tensorflow.keras.layers import Embedding
-from tensorflow.keras.regularizers import l2
 import numpy as np
 from tqdm import tqdm
+import pickle
 import os
 
 
@@ -54,23 +53,130 @@ def generate_movie_vew_count():
                     temp.append(str(movie_view_count[int(item)]))
                 f1.write(' '.join(temp) + '\n')
 
+def generate_movie_genre_json():
+    movies_file = "/home/cqj/zzh/recforpaper/data/ml-1m/movies.dat"
+    genres_index_pickle = "/home/cqj/zzh/recforpaper/data/ml-1m/genres_index.pkl"
+    movies_genres_json = "/home/cqj/zzh/recforpaper/data/ml-1m/movies_genres.json"
+    unique_genres = {}
+    index = 0
+    with open(movies_file, 'r', encoding='iso-8859-1') as f1:
+        lines = f1.readlines()
+        for line in tqdm(lines):
+            item, item_name, genres = line.strip().split('::')
+            genres_list = genres.strip().split('|')
+            for gen in genres_list:
+                if gen not in unique_genres:
+                    unique_genres[gen] = index
+                    index += 1
+    print("unique_genres:", unique_genres)
+    with open(genres_index_pickle, 'wb') as f2:
+        pickle.dump(unique_genres, f2)
+    item2genres_index = {}
+    with open(movies_file, 'r', encoding='iso-8859-1') as f3:
+        lines = f3.readlines()
+        for line in tqdm(lines):
+            item, item_name, genres = line.strip().split('::')
+            genres_list = genres.strip().split('|')
+            index_list = []
+            for gen in genres_list:
+                index_list.append(unique_genres[gen])
+            item2genres_index[int(item)] = index_list
+    with open(movies_genres_json, 'w', encoding='utf-8') as f4:
+        json.dump(item2genres_index, f4, ensure_ascii=False, indent=4)
+
 
 if __name__ == '__main__':
-    # 向量空间：item_embedding
-    item_embedding = Embedding(input_dim=3,
-                                    input_length=1,
-                                    output_dim=2,
-                                    embeddings_initializer='random_normal',
-                                    embeddings_regularizer=l2(0.0))
-    # 向量空间：pos_embedding
-    pos_embedding = Embedding(input_dim=3,
-                                   input_length=1,
-                                   output_dim=2,
-                                   embeddings_initializer='random_normal',
-                                   embeddings_regularizer=l2(0.0))
-    temp = np.array([0, 1, 2])
-    temp_emb = tf.expand_dims(pos_embedding(temp), axis=1)
-    print("temp_emb:", temp_emb)
-    a = tf.fill([3, 3, 4], 3.)
-    b = tf.fill([3, 3, 4], 2.)
+    self.depthwise1 = DepthwiseConv2D(
+        kernel_size=(3, 1),
+        depth_multiplier=1,  # 每个通道独立卷积
+        padding='same',
+        use_bias=False
+    )
+    self.point_conv1 = Conv1D(filters=8, kernel_size=1, padding='same', activation='relu')
+    self.recover_dense1 = Dense(units=32)
+    self.depthwise2 = DepthwiseConv2D(
+        kernel_size=(5, 1),
+        depth_multiplier=1,  # 每个通道独立卷积
+        padding='same',
+        use_bias=False
+    )
+    self.point_conv2 = Conv1D(filters=8, kernel_size=1, padding='same', activation='relu')
+    self.recover_dense2 = Dense(units=32)
+    self.depthwise3 = DepthwiseConv2D(
+        kernel_size=(7, 1),
+        depth_multiplier=1,  # 每个通道独立卷积
+        padding='same',
+        use_bias=False
+    )
+    self.point_conv3 = Conv1D(filters=8, kernel_size=1, padding='same', activation='relu')
+    self.recover_dense3 = Dense(units=32)
+    self.depthwise4 = DepthwiseConv2D(
+        kernel_size=(11, 1),
+        depth_multiplier=1,  # 每个通道独立卷积
+        padding='same',
+        use_bias=False
+    )
+    self.point_conv4 = Conv1D(filters=8, kernel_size=1, padding='same', activation='relu')
+    self.recover_dense4 = Dense(units=32)
 
+    dimension_per_head = self.d_model // 4
+    par_q_1 = q[..., dimension_per_head * 0: dimension_per_head * 1]
+    par_k_1 = k[..., dimension_per_head * 0: dimension_per_head * 1]
+    par_v_1 = v[..., dimension_per_head * 0: dimension_per_head * 1]
+    scaled_attention_1_st = scaled_dot_product_attention(par_q_1, par_k_1, par_v_1,
+                                                         mask)  # (None, num_heads, seq_len, d_model // num_heads)
+    scaled_attention_1 = scaled_attention_1_st
+    scaled_attention_1 = tf.expand_dims(scaled_attention_1, axis=-1)
+    scaled_attention_1 = self.depthwise1(scaled_attention_1)
+    scaled_attention_1 = tf.squeeze(scaled_attention_1, axis=-1)
+    scaled_attention_1 = self.point_conv1(scaled_attention_1)
+    scaled_attention_1 = self.recover_dense1(scaled_attention_1)
+
+    par_q_2 = q[..., dimension_per_head * 1: dimension_per_head * 2]
+    par_k_2 = k[..., dimension_per_head * 1: dimension_per_head * 2]
+    par_v_2 = v[..., dimension_per_head * 1: dimension_per_head * 2]
+    scaled_attention_2_st = scaled_dot_product_attention(par_q_2, par_k_2, par_v_2,
+                                                         mask)  # (None, num_heads, seq_len, d_model // num_heads)
+    scaled_attention_2 = scaled_attention_2_st
+    scaled_attention_2 = tf.expand_dims(scaled_attention_2, axis=-1)
+    scaled_attention_2 = self.depthwise2(scaled_attention_2)
+    scaled_attention_2 = tf.squeeze(scaled_attention_2, axis=-1)
+    scaled_attention_2 = self.point_conv2(scaled_attention_2)
+    scaled_attention_2 = self.recover_dense2(scaled_attention_2)
+
+    par_q_3 = q[..., dimension_per_head * 2: dimension_per_head * 3]
+    par_k_3 = k[..., dimension_per_head * 2: dimension_per_head * 3]
+    par_v_3 = v[..., dimension_per_head * 2: dimension_per_head * 3]
+    scaled_attention_3_st = scaled_dot_product_attention(par_q_3, par_k_3, par_v_3,
+                                                         mask)  # (None, num_heads, seq_len, d_model // num_heads)
+    scaled_attention_3 = scaled_attention_3_st
+    scaled_attention_3 = tf.expand_dims(scaled_attention_3, axis=-1)
+    scaled_attention_3 = self.depthwise3(scaled_attention_3)
+    scaled_attention_3 = tf.squeeze(scaled_attention_3, axis=-1)
+    scaled_attention_3 = self.point_conv3(scaled_attention_3)
+    scaled_attention_3 = self.recover_dense3(scaled_attention_3)
+
+    par_q_4 = q[..., dimension_per_head * 3: dimension_per_head * 4]
+    par_k_4 = k[..., dimension_per_head * 3: dimension_per_head * 4]
+    par_v_4 = v[..., dimension_per_head * 3: dimension_per_head * 4]
+    scaled_attention_4_st = scaled_dot_product_attention(par_q_4, par_k_4, par_v_4,
+                                                         mask)  # (None, num_heads, seq_len, d_model // num_heads)
+    scaled_attention_4 = scaled_attention_4_st
+    scaled_attention_4 = tf.expand_dims(scaled_attention_4, axis=-1)
+    scaled_attention_4 = self.depthwise4(scaled_attention_4)
+    scaled_attention_4 = tf.squeeze(scaled_attention_4, axis=-1)
+    scaled_attention_4 = self.point_conv4(scaled_attention_4)
+    scaled_attention_4 = self.recover_dense4(scaled_attention_4)
+
+    # merge
+    scaled_attention_1_st = scaled_attention_1_st + scaled_attention_2 + scaled_attention_3 + scaled_attention_4
+    # scaled_attention_1_st = self.dense1_1(scaled_attention_1_st)
+    scaled_attention_2_st = scaled_attention_2_st + scaled_attention_1 + scaled_attention_3 + scaled_attention_4
+    # scaled_attention_2_st = self.dense2_2(scaled_attention_2_st)
+    scaled_attention_3_st = scaled_attention_3_st + scaled_attention_1 + scaled_attention_2 + scaled_attention_4
+    # scaled_attention_3_st = self.dense3_3(scaled_attention_3_st)
+    scaled_attention_4_st = scaled_attention_4_st + scaled_attention_1 + scaled_attention_2 + scaled_attention_3
+    # scaled_attention_4_st = self.dense4_4(scaled_attention_4_st)
+    par_output = [scaled_attention_1_st, scaled_attention_2_st, scaled_attention_3_st, scaled_attention_4_st]
+
+    outputs = tf.concat(par_output, axis=-1)

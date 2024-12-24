@@ -3,9 +3,10 @@ Created on Nov 07, 2021
 core layers
 @author: Ziyao Geng(zggzy1996@163.com)
 """
+import keras
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Layer, Dense, Dropout, BatchNormalization, LayerNormalization, Conv1D, ReLU
+from tensorflow.keras.layers import Layer, Dense, Dropout, BatchNormalization, LayerNormalization, Conv1D, ReLU, DepthwiseConv2D
 from tensorflow.keras.regularizers import l2
 
 from reclearn.layers.utils import scaled_dot_product_attention, split_heads, index_mapping
@@ -122,6 +123,30 @@ class MLP(Layer):
         x = self.dropout(x)
         return x
 
+class DenseSynthesizer(Layer):
+    def __init__(self, seq_len, d_model, num_heads):
+        super(DenseSynthesizer, self).__init__()
+        self.d_model = d_model
+        self.seq_len = seq_len
+        self.num_heads = num_heads
+        self.head_dim = d_model // num_heads
+        self.wv = Dense(d_model, activation=None)
+        self.dense_synth1 = Dense(d_model // 2, activation='relu')
+        self.dense_synth2 = Dense(d_model)
+        self.dense_seq_len = Dense(seq_len)
+
+    def call(self, x, mask):
+        v = self.wv(x)
+        attention_logits = self.dense_synth1(x) #(batch, seq_len, d_model//2)
+        attention_logits = self.dense_synth2(attention_logits) #(batch, seq_len, d_model)
+        synthesizer_out = self.dense_seq_len(attention_logits)
+        paddings = tf.ones_like(synthesizer_out) * (-2 ** 32 + 1)  # (None, seq_len, seq_len)
+        # 如果mask的值为0，用负无穷填充，否则保留原来的值
+        outputs = tf.where(tf.equal(mask, tf.zeros_like(mask)), paddings, synthesizer_out)  # (None, seq_len, seq_len)
+        outputs = tf.nn.softmax(outputs, axis=-1)
+        outputs = tf.matmul(outputs, v)
+
+        return outputs
 
 class MultiHeadAttention(Layer):
     def __init__(self, d_model, num_heads):
@@ -138,12 +163,43 @@ class MultiHeadAttention(Layer):
         self.wq = Dense(d_model, activation=None)
         self.wk = Dense(d_model, activation=None)
         self.wv = Dense(d_model, activation=None)
+        '''
+        self.dense1 = Dense(units=8, activation="relu")
+        self.dense2 = Dense(units=8, activation="relu")
+        self.dense3 = Dense(units=8, activation="relu")
+        self.dense4 = Dense(units=8, activation="relu")
+        self.conv1 = Conv1D(filters=16, kernel_size=3, activation='relu', padding='same', use_bias=True)
+        self.conv2 = Conv1D(filters=16, kernel_size=5, activation='relu', padding='same', use_bias=True)
+        self.conv3 = Conv1D(filters=16, kernel_size=7, activation='relu', padding='same', use_bias=True)
+        self.conv4 = Conv1D(filters=16, kernel_size=11, activation='relu', padding='same', use_bias=True)
+        self.dense1_1 = Dense(units=16)
+        self.dense2_2 = Dense(units=16)
+        self.dense3_3 = Dense(units=16)
+        self.dense4_4 = Dense(units=16)
+        '''
+        self.depthwise1 = DepthwiseConv2D(
+            kernel_size=(3, 1),
+            depth_multiplier=1,  # 每个通道独立卷积
+            padding='same',
+            use_bias=False
+        )
+        self.point_conv1 = Conv1D(filters=64, kernel_size=1, padding='same', activation='relu')
+        self.recover_dense1 = Dense(units=d_model)
 
+        self.depthwise2 = DepthwiseConv2D(
+            kernel_size=(5, 1),
+            depth_multiplier=1,  # 每个通道独立卷积
+            padding='same',
+            use_bias=False
+        )
+        self.point_conv2 = Conv1D(filters=64, kernel_size=1, padding='same', activation='relu')
+        self.recover_dense2 = Dense(units=d_model)
     def call(self, q, k, v, mask):
         q = self.wq(q)  # (None, seq_len, d_model)
         k = self.wk(k)  # (None, seq_len, d_model)
         v = self.wv(v)  # (None, seq_len, d_model)
         # split d_model into num_heads * depth
+
         '''
         seq_len, d_model = q.shape[1], q.shape[2]
         q = split_heads(q, seq_len, self.num_heads, q.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
@@ -151,6 +207,7 @@ class MultiHeadAttention(Layer):
         v = split_heads(v, seq_len, self.num_heads, v.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
         # mask
         mask = tf.tile(tf.expand_dims(mask, axis=1), [1, self.num_heads, 1, 1])  # (None, num_heads, seq_len, 1)
+        '''
         '''
         par_output = []
         dimension_per_head = self.d_model // self.num_heads
@@ -165,6 +222,21 @@ class MultiHeadAttention(Layer):
             scaled_attention = scaled_dot_product_attention(par_q, par_k, par_v, mask)  # (None, num_heads, seq_len, d_model // num_heads)
             par_output.append(scaled_attention)
         outputs = tf.concat(par_output, axis=-1)
+        '''
+        attention_encode = scaled_dot_product_attention(q, k, v, mask)
+        scaled_attention1 = tf.expand_dims(attention_encode, axis=-1)
+        scaled_attention1 = self.depthwise1(scaled_attention1)
+        scaled_attention1 = tf.squeeze(scaled_attention1, axis=-1)
+        scaled_attention1 = self.point_conv1(scaled_attention1)
+        scaled_attention1 = self.recover_dense1(scaled_attention1)
+
+        scaled_attention2 = tf.expand_dims(attention_encode, axis=-1)
+        scaled_attention2 = self.depthwise2(scaled_attention2)
+        scaled_attention2 = tf.squeeze(scaled_attention2, axis=-1)
+        scaled_attention2 = self.point_conv2(scaled_attention2)
+        scaled_attention2 = self.recover_dense2(scaled_attention2)
+        outputs = attention_encode + scaled_attention1 + scaled_attention2
+
         # reshape
         # outputs = tf.reshape(tf.transpose(scaled_attention, [0, 2, 1, 3]), [-1, seq_len, d_model])  # (None, seq_len, d_model)
         return outputs
