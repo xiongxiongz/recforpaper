@@ -25,13 +25,12 @@ def get_loss(pos_scores, neg_scores, loss_name, gamma=None):
     return loss
 
 
-def get_loss_with_rl(pos_scores, neg_scores, loss_name, logits, normal_loss, gamma=None):
+def get_loss_with_rl(pos_scores, neg_scores, loss_name, logits, gamma=None):
     """Get loss scores.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, 1].
         :param neg_scores: A tensor with shape of [batch_size, neg_num].
         :param loss_name: A string such as 'bpr_loss', 'hing_loss' and etc.
-        :param rl_loss
         :param gamma: A scalar(int). If loss_name == 'hinge_loss', the gamma must be valid.
     :return:
     """
@@ -41,7 +40,7 @@ def get_loss_with_rl(pos_scores, neg_scores, loss_name, logits, normal_loss, gam
     elif loss_name == 'hinge_loss':
         loss = hinge_loss(pos_scores, neg_scores, gamma)
     else:
-        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits, normal_loss)
+        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits)
     return loss
 
 
@@ -105,22 +104,22 @@ def binary_cross_entropy_loss(pos_scores, neg_scores):
     return loss
 
 
-def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits, normal_loss):
+def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits):
     """binary cross entropy loss.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, neg_num].
         :param neg_scores: A tensor with shape of [batch_size, neg_num].
-        :param rl_loss
     :return:
     """
     # KL散度
-    # a_probs = tf.nn.softmax(clean_representation, axis=-1)
-    # b_probs = tf.nn.softmax(noise_representation, axis=-1)
-    # loss_divergence = tf.reduce_mean(KLDivergence()(a_probs, b_probs))
-    # contra_loss = tf.constant(0.1, dtype=loss_divergence.dtype) * loss_divergence
-    nce_loss = 0.2 * infonce_loss(normal_loss[0], normal_loss[1])
+    # a_probs = probs[0]
+    # a_probs = tf.nn.softmax(a_probs, axis=-1)
+    # b_probs = probs[1]
+    # b_probs = tf.nn.softmax(b_probs, axis=-1)
+    # reward_loss_divergence = tf.reduce_mean(KLDivergence()(a_probs, b_probs))
+    # contra_loss = tf.constant(0.5, dtype=reward_loss_divergence.dtype) * reward_loss_divergence
     loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores)) - tf.math.log(1 - tf.nn.sigmoid(neg_scores))) / 2
-    rl_loss = 0.2 * cal_rl_loss(logits)
+    # rl_loss = 0.2 * cal_rl_loss(logits)
     return loss
 
 def cal_rl_loss(logits, k=10):

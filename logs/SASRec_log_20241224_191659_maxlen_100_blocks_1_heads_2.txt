@@ -1,0 +1,336 @@
+(rec_learn) he@he-MS-7C22:/media/he/c6c60fc3-65e5-407b-86ac-16ca6e42848f/he/pycharm-community-2023.2.4_Work/recforpaper$ python ./example/m_sasrec_demo.py --item_dim=100 --user_dim=48 --blocks=1 --num_heads=2 --neg_num=50 --seq_len=100 --epochs=40 --batch_size=512 --seed=61
+2024-12-24 19:12:12.219062: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcudart.so.11.0
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 999611/999611 [00:00<00:00, 1470571.34it/s]
+usernum:  6040
+itemnum:  3416
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6040/6040 [00:00<00:00, 298850.96it/s]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6040/6040 [04:23<00:00, 22.93it/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 999611/999611 [00:00<00:00, 1445048.51it/s]
+usernum:  6040
+itemnum:  3416
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6040/6040 [00:00<00:00, 461718.96it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6040/6040 [00:00<00:00, 7848.62it/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 999611/999611 [00:00<00:00, 1466310.83it/s]
+usernum:  6040
+itemnum:  3416
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6040/6040 [00:00<00:00, 2589552.91it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6040/6040 [00:01<00:00, 3979.45it/s]
+2024-12-24 19:16:59.385775: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcuda.so.1
+2024-12-24 19:16:59.409970: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.410105: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1733] Found device 0 with properties:
+pciBusID: 0000:01:00.0 name: NVIDIA GeForce GTX 1080 Ti computeCapability: 6.1
+coreClock: 1.6325GHz coreCount: 28 deviceMemorySize: 10.90GiB deviceMemoryBandwidth: 451.17GiB/s
+2024-12-24 19:16:59.410133: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcudart.so.11.0
+2024-12-24 19:16:59.412711: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcublas.so.11
+2024-12-24 19:16:59.412743: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcublasLt.so.11
+2024-12-24 19:16:59.433872: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcufft.so.10
+2024-12-24 19:16:59.434207: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcurand.so.10
+2024-12-24 19:16:59.434555: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcusolver.so.11
+2024-12-24 19:16:59.435000: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcusparse.so.11
+2024-12-24 19:16:59.435081: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcudnn.so.8
+2024-12-24 19:16:59.435194: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.435401: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.435496: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1871] Adding visible gpu devices: 0
+2024-12-24 19:16:59.435694: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-12-24 19:16:59.436012: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.436561: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1733] Found device 0 with properties:
+pciBusID: 0000:01:00.0 name: NVIDIA GeForce GTX 1080 Ti computeCapability: 6.1
+coreClock: 1.6325GHz coreCount: 28 deviceMemorySize: 10.90GiB deviceMemoryBandwidth: 451.17GiB/s
+2024-12-24 19:16:59.436612: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.436726: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.436813: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1871] Adding visible gpu devices: 0
+2024-12-24 19:16:59.436838: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcudart.so.11.0
+2024-12-24 19:16:59.607020: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1258] Device interconnect StreamExecutor with strength 1 edge matrix:
+2024-12-24 19:16:59.607047: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1264]      0
+2024-12-24 19:16:59.607052: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1277] 0:   N
+2024-12-24 19:16:59.607186: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.607355: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.607470: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:937] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2024-12-24 19:16:59.607569: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1418] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 10108 MB memory) -> physical GPU (device: 0, name: NVIDIA GeForce GTX 1080 Ti, pci bus id: 0000:01:00.0, compute capability: 6.1)
+2024-12-24 19:16:59.700160: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcublas.so.11
+2024-12-24 19:16:59.793781: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcublasLt.so.11
+2024-12-24 19:16:59.816719: I tensorflow/stream_executor/platform/default/dso_loader.cc:53] Successfully opened dynamic library libcudnn.so.8
+2024-12-24 19:16:59.819583: I tensorflow/stream_executor/cuda/cuda_dnn.cc:359] Loaded cuDNN version 8907
+2024-12-24 19:16:59.946578: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:176] None of the MLIR Optimization Passes are enabled (registered 2)
+2024-12-24 19:16:59.946988: I tensorflow/core/platform/profile_utils/cpu_utils.cc:114] CPU Frequency: 3600000000 Hz
+1917/1917 [==============================] - 157s 81ms/step - loss: 0.3526 - val_loss: 0.3286
+pred_y: (6040, 101)
+rank: [ 0 15  6 ...  1 13 12]
+res: 4653.0
+len(rank): 6040
+res / len(rank): 0.770364238410596
+Iteration 1 Fit [157.7 s], Evaluate [1.2 s]: HR_10 = 0.7704, MRR@10 = 0.4559, NDCG@10 = 0.5314, HR@20 = 0.8743, MRR@20 = 0.4633, NDCG@20 = 0.5579, HR@40 = 0.9478, MRR@40 = 0.4659, NDCG@40 = 0.5730
+1917/1917 [==============================] - 156s 82ms/step - loss: 0.2440 - val_loss: 0.3015
+pred_y: (6040, 101)
+rank: [ 0 16  1 ...  0  6 13]
+res: 4829.0
+len(rank): 6040
+res / len(rank): 0.7995033112582781
+Iteration 2 Fit [156.5 s], Evaluate [0.8 s]: HR_10 = 0.7995, MRR@10 = 0.4924, NDCG@10 = 0.5662, HR@20 = 0.8861, MRR@20 = 0.4985, NDCG@20 = 0.5882, HR@40 = 0.9538, MRR@40 = 0.5009, NDCG@40 = 0.6022
+1917/1917 [==============================] - 156s 81ms/step - loss: 0.2234 - val_loss: 0.2960
+pred_y: (6040, 101)
+rank: [ 0 28  3 ...  0  5 11]
+res: 4898.0
+len(rank): 6040
+res / len(rank): 0.8109271523178808
+Iteration 3 Fit [155.6 s], Evaluate [0.8 s]: HR_10 = 0.8109, MRR@10 = 0.5099, NDCG@10 = 0.5824, HR@20 = 0.8901, MRR@20 = 0.5155, NDCG@20 = 0.6026, HR@40 = 0.9551, MRR@40 = 0.5178, NDCG@40 = 0.6160
+1917/1917 [==============================] - 155s 81ms/step - loss: 0.2128 - val_loss: 0.2908
+pred_y: (6040, 101)
+rank: [ 0 23  1 ...  0  4  7]
+res: 4945.0
+len(rank): 6040
+res / len(rank): 0.8187086092715232
+Iteration 4 Fit [155.4 s], Evaluate [0.8 s]: HR_10 = 0.8187, MRR@10 = 0.5224, NDCG@10 = 0.5937, HR@20 = 0.8925, MRR@20 = 0.5276, NDCG@20 = 0.6124, HR@40 = 0.9563, MRR@40 = 0.5299, NDCG@40 = 0.6255
+1917/1917 [==============================] - 155s 81ms/step - loss: 0.2056 - val_loss: 0.2896
+pred_y: (6040, 101)
+rank: [ 0 24  1 ...  0  7 12]
+res: 4949.0
+len(rank): 6040
+res / len(rank): 0.8193708609271523
+Iteration 5 Fit [154.9 s], Evaluate [0.8 s]: HR_10 = 0.8194, MRR@10 = 0.5274, NDCG@10 = 0.5977, HR@20 = 0.8974, MRR@20 = 0.5330, NDCG@20 = 0.6176, HR@40 = 0.9560, MRR@40 = 0.5351, NDCG@40 = 0.6297
+1917/1917 [==============================] - 155s 81ms/step - loss: 0.2002 - val_loss: 0.2920
+pred_y: (6040, 101)
+rank: [ 0 17  0 ...  0  4  6]
+res: 4969.0
+len(rank): 6040
+res / len(rank): 0.822682119205298
+Iteration 6 Fit [155.3 s], Evaluate [1.4 s]: HR_10 = 0.8227, MRR@10 = 0.5310, NDCG@10 = 0.6013, HR@20 = 0.8964, MRR@20 = 0.5362, NDCG@20 = 0.6200, HR@40 = 0.9591, MRR@40 = 0.5384, NDCG@40 = 0.6329
+1917/1917 [==============================] - 156s 81ms/step - loss: 0.1960 - val_loss: 0.2895
+pred_y: (6040, 101)
+rank: [ 0 11  1 ...  0  3  9]
+res: 4922.0
+len(rank): 6040
+res / len(rank): 0.8149006622516556
+Iteration 7 Fit [155.7 s], Evaluate [0.8 s]: HR_10 = 0.8149, MRR@10 = 0.5337, NDCG@10 = 0.6016, HR@20 = 0.8955, MRR@20 = 0.5394, NDCG@20 = 0.6221, HR@40 = 0.9598, MRR@40 = 0.5417, NDCG@40 = 0.6353
+1917/1917 [==============================] - 157s 82ms/step - loss: 0.1927 - val_loss: 0.2881
+pred_y: (6040, 101)
+rank: [ 0 17  0 ...  0  4  5]
+res: 4968.0
+len(rank): 6040
+res / len(rank): 0.8225165562913908
+Iteration 8 Fit [156.6 s], Evaluate [0.8 s]: HR_10 = 0.8225, MRR@10 = 0.5401, NDCG@10 = 0.6083, HR@20 = 0.8982, MRR@20 = 0.5454, NDCG@20 = 0.6275, HR@40 = 0.9584, MRR@40 = 0.5476, NDCG@40 = 0.6398
+1917/1917 [==============================] - 155s 81ms/step - loss: 0.1896 - val_loss: 0.2961
+pred_y: (6040, 101)
+rank: [ 0 16  1 ...  0  4  5]
+res: 4967.0
+len(rank): 6040
+res / len(rank): 0.8223509933774834
+Iteration 9 Fit [155.5 s], Evaluate [0.8 s]: HR_10 = 0.8224, MRR@10 = 0.5384, NDCG@10 = 0.6069, HR@20 = 0.8960, MRR@20 = 0.5436, NDCG@20 = 0.6256, HR@40 = 0.9581, MRR@40 = 0.5458, NDCG@40 = 0.6384
+1917/1917 [==============================] - 157s 82ms/step - loss: 0.1871 - val_loss: 0.2987
+pred_y: (6040, 101)
+rank: [ 0 15  1 ...  0  1  8]
+res: 4972.0
+len(rank): 6040
+res / len(rank): 0.8231788079470199
+Iteration 10 Fit [157.0 s], Evaluate [0.8 s]: HR_10 = 0.8232, MRR@10 = 0.5380, NDCG@10 = 0.6068, HR@20 = 0.8987, MRR@20 = 0.5432, NDCG@20 = 0.6259, HR@40 = 0.9576, MRR@40 = 0.5453, NDCG@40 = 0.6380
+1917/1917 [==============================] - 157s 82ms/step - loss: 0.1851 - val_loss: 0.2945
+pred_y: (6040, 101)
+rank: [ 0 21  0 ...  0  5  7]
+res: 4964.0
+len(rank): 6040
+res / len(rank): 0.8218543046357616
+Iteration 11 Fit [157.2 s], Evaluate [0.8 s]: HR_10 = 0.8219, MRR@10 = 0.5392, NDCG@10 = 0.6075, HR@20 = 0.8988, MRR@20 = 0.5446, NDCG@20 = 0.6270, HR@40 = 0.9608, MRR@40 = 0.5468, NDCG@40 = 0.6397
+1917/1917 [==============================] - 157s 82ms/step - loss: 0.1833 - val_loss: 0.2968
+pred_y: (6040, 101)
+rank: [ 0 21  1 ...  0  5  6]
+res: 4981.0
+len(rank): 6040
+res / len(rank): 0.8246688741721855
+Iteration 12 Fit [157.0 s], Evaluate [0.8 s]: HR_10 = 0.8247, MRR@10 = 0.5401, NDCG@10 = 0.6089, HR@20 = 0.9015, MRR@20 = 0.5455, NDCG@20 = 0.6284, HR@40 = 0.9589, MRR@40 = 0.5475, NDCG@40 = 0.6401
+1917/1917 [==============================] - 158s 82ms/step - loss: 0.1816 - val_loss: 0.3013
+pred_y: (6040, 101)
+rank: [ 0 19  1 ...  0  5  3]
+res: 4979.0
+len(rank): 6040
+res / len(rank): 0.8243377483443709
+Iteration 13 Fit [157.7 s], Evaluate [0.8 s]: HR_10 = 0.8243, MRR@10 = 0.5415, NDCG@10 = 0.6097, HR@20 = 0.8975, MRR@20 = 0.5466, NDCG@20 = 0.6282, HR@40 = 0.9579, MRR@40 = 0.5488, NDCG@40 = 0.6406
+1917/1917 [==============================] - 155s 81ms/step - loss: 0.1800 - val_loss: 0.2980
+pred_y: (6040, 101)
+rank: [ 0 21  1 ...  0  1  9]
+res: 4990.0
+len(rank): 6040
+res / len(rank): 0.8261589403973509
+Iteration 14 Fit [154.6 s], Evaluate [0.8 s]: HR_10 = 0.8262, MRR@10 = 0.5411, NDCG@10 = 0.6099, HR@20 = 0.8990, MRR@20 = 0.5462, NDCG@20 = 0.6284, HR@40 = 0.9578, MRR@40 = 0.5483, NDCG@40 = 0.6405
+1917/1917 [==============================] - 156s 81ms/step - loss: 0.1785 - val_loss: 0.3005
+pred_y: (6040, 101)
+rank: [ 0 20  0 ...  0  1  5]
+res: 4974.0
+len(rank): 6040
+res / len(rank): 0.8235099337748344
+Iteration 15 Fit [155.7 s], Evaluate [0.8 s]: HR_10 = 0.8235, MRR@10 = 0.5428, NDCG@10 = 0.6106, HR@20 = 0.9005, MRR@20 = 0.5483, NDCG@20 = 0.6302, HR@40 = 0.9598, MRR@40 = 0.5504, NDCG@40 = 0.6423
+1917/1917 [==============================] - 154s 81ms/step - loss: 0.1775 - val_loss: 0.2966
+pred_y: (6040, 101)
+rank: [ 0 17  1 ...  0  0  8]
+res: 5001.0
+len(rank): 6040
+res / len(rank): 0.8279801324503311
+Iteration 16 Fit [154.5 s], Evaluate [0.8 s]: HR_10 = 0.8280, MRR@10 = 0.5421, NDCG@10 = 0.6110, HR@20 = 0.8993, MRR@20 = 0.5471, NDCG@20 = 0.6291, HR@40 = 0.9593, MRR@40 = 0.5493, NDCG@40 = 0.6414
+1917/1917 [==============================] - 156s 81ms/step - loss: 0.1762 - val_loss: 0.3049
+pred_y: (6040, 101)
+rank: [ 0 19  0 ...  0  1  6]
+res: 4988.0
+len(rank): 6040
+res / len(rank): 0.8258278145695365
+Iteration 17 Fit [156.1 s], Evaluate [0.8 s]: HR_10 = 0.8258, MRR@10 = 0.5432, NDCG@10 = 0.6115, HR@20 = 0.8977, MRR@20 = 0.5482, NDCG@20 = 0.6298, HR@40 = 0.9571, MRR@40 = 0.5504, NDCG@40 = 0.6420
+1917/1917 [==============================] - 156s 82ms/step - loss: 0.1754 - val_loss: 0.3016
+pred_y: (6040, 101)
+rank: [ 0 18  0 ...  0  1 12]
+res: 4999.0
+len(rank): 6040
+res / len(rank): 0.8276490066225165
+Iteration 18 Fit [156.5 s], Evaluate [0.8 s]: HR_10 = 0.8276, MRR@10 = 0.5483, NDCG@10 = 0.6158, HR@20 = 0.9000, MRR@20 = 0.5534, NDCG@20 = 0.6342, HR@40 = 0.9601, MRR@40 = 0.5556, NDCG@40 = 0.6465
+1917/1917 [==============================] - 155s 81ms/step - loss: 0.1743 - val_loss: 0.3083
+pred_y: (6040, 101)
+rank: [ 0 15  0 ...  0  3  6]
+res: 4990.0
+len(rank): 6040
+res / len(rank): 0.8261589403973509
+Iteration 19 Fit [155.1 s], Evaluate [0.8 s]: HR_10 = 0.8262, MRR@10 = 0.5436, NDCG@10 = 0.6118, HR@20 = 0.8990, MRR@20 = 0.5488, NDCG@20 = 0.6303, HR@40 = 0.9588, MRR@40 = 0.5509, NDCG@40 = 0.6426
+1917/1917 [==============================] - 154s 80ms/step - loss: 0.1735 - val_loss: 0.3093
+pred_y: (6040, 101)
+rank: [ 0 21  0 ...  0  0  7]
+res: 4996.0
+len(rank): 6040
+res / len(rank): 0.8271523178807947
+Iteration 20 Fit [154.4 s], Evaluate [0.8 s]: HR_10 = 0.8272, MRR@10 = 0.5438, NDCG@10 = 0.6122, HR@20 = 0.8980, MRR@20 = 0.5488, NDCG@20 = 0.6302, HR@40 = 0.9601, MRR@40 = 0.5510, NDCG@40 = 0.6430
+1917/1917 [==============================] - 155s 81ms/step - loss: 0.1727 - val_loss: 0.3043
+pred_y: (6040, 101)
+rank: [ 0 18  1 ...  0  3 14]
+res: 5000.0
+len(rank): 6040
+res / len(rank): 0.8278145695364238
+Iteration 21 Fit [155.2 s], Evaluate [0.8 s]: HR_10 = 0.8278, MRR@10 = 0.5455, NDCG@10 = 0.6137, HR@20 = 0.9012, MRR@20 = 0.5507, NDCG@20 = 0.6323, HR@40 = 0.9593, MRR@40 = 0.5528, NDCG@40 = 0.6442
+1917/1917 [==============================] - 156s 81ms/step - loss: 0.1720 - val_loss: 0.3075
+pred_y: (6040, 101)
+rank: [ 0 22  0 ...  0  1  6]
+res: 5004.0
+len(rank): 6040
+res / len(rank): 0.828476821192053
+Iteration 22 Fit [155.6 s], Evaluate [0.8 s]: HR_10 = 0.8285, MRR@10 = 0.5456, NDCG@10 = 0.6140, HR@20 = 0.9017, MRR@20 = 0.5507, NDCG@20 = 0.6325, HR@40 = 0.9601, MRR@40 = 0.5529, NDCG@40 = 0.6446
+1917/1917 [==============================] - 156s 81ms/step - loss: 0.1712 - val_loss: 0.3057
+pred_y: (6040, 101)
+rank: [ 0 21  1 ...  0  2  8]
+res: 5003.0
+len(rank): 6040
+res / len(rank): 0.8283112582781457
+Iteration 23 Fit [155.6 s], Evaluate [0.8 s]: HR_10 = 0.8283, MRR@10 = 0.5478, NDCG@10 = 0.6156, HR@20 = 0.8992, MRR@20 = 0.5528, NDCG@20 = 0.6336, HR@40 = 0.9598, MRR@40 = 0.5550, NDCG@40 = 0.6460
+1917/1917 [==============================] - 154s 80ms/step - loss: 0.1704 - val_loss: 0.3069
+pred_y: (6040, 101)
+rank: [ 0 23  1 ...  0  1  9]
+res: 4997.0
+len(rank): 6040
+res / len(rank): 0.827317880794702
+Iteration 24 Fit [154.1 s], Evaluate [0.8 s]: HR_10 = 0.8273, MRR@10 = 0.5480, NDCG@10 = 0.6154, HR@20 = 0.9012, MRR@20 = 0.5532, NDCG@20 = 0.6341, HR@40 = 0.9601, MRR@40 = 0.5553, NDCG@40 = 0.6462
+1917/1917 [==============================] - 154s 80ms/step - loss: 0.1700 - val_loss: 0.3142
+pred_y: (6040, 101)
+rank: [ 0 21  1 ...  0  3  7]
+res: 4997.0
+len(rank): 6040
+res / len(rank): 0.827317880794702
+Iteration 25 Fit [153.6 s], Evaluate [0.7 s]: HR_10 = 0.8273, MRR@10 = 0.5445, NDCG@10 = 0.6128, HR@20 = 0.9015, MRR@20 = 0.5498, NDCG@20 = 0.6317, HR@40 = 0.9601, MRR@40 = 0.5518, NDCG@40 = 0.6437
+1917/1917 [==============================] - 148s 77ms/step - loss: 0.1693 - val_loss: 0.3175
+pred_y: (6040, 101)
+rank: [ 0 19  0 ...  0  5 10]
+res: 4992.0
+len(rank): 6040
+res / len(rank): 0.8264900662251655
+Iteration 26 Fit [148.0 s], Evaluate [1.1 s]: HR_10 = 0.8265, MRR@10 = 0.5470, NDCG@10 = 0.6144, HR@20 = 0.9005, MRR@20 = 0.5522, NDCG@20 = 0.6333, HR@40 = 0.9598, MRR@40 = 0.5543, NDCG@40 = 0.6454
+1917/1917 [==============================] - 156s 81ms/step - loss: 0.1688 - val_loss: 0.3085
+pred_y: (6040, 101)
+rank: [ 0 18  1 ...  0  2  9]
+res: 5019.0
+len(rank): 6040
+res / len(rank): 0.8309602649006622
+Iteration 27 Fit [155.9 s], Evaluate [1.0 s]: HR_10 = 0.8310, MRR@10 = 0.5448, NDCG@10 = 0.6138, HR@20 = 0.9000, MRR@20 = 0.5496, NDCG@20 = 0.6313, HR@40 = 0.9609, MRR@40 = 0.5518, NDCG@40 = 0.6438
+1917/1917 [==============================] - 146s 76ms/step - loss: 0.1682 - val_loss: 0.3122
+pred_y: (6040, 101)
+rank: [ 0 19  1 ...  0  0 13]
+res: 5007.0
+len(rank): 6040
+res / len(rank): 0.8289735099337748
+Iteration 28 Fit [145.9 s], Evaluate [1.1 s]: HR_10 = 0.8290, MRR@10 = 0.5444, NDCG@10 = 0.6130, HR@20 = 0.8977, MRR@20 = 0.5492, NDCG@20 = 0.6305, HR@40 = 0.9591, MRR@40 = 0.5514, NDCG@40 = 0.6431
+1917/1917 [==============================] - 149s 78ms/step - loss: 0.1677 - val_loss: 0.3204
+pred_y: (6040, 101)
+rank: [ 0 24  1 ...  0  3 11]
+res: 4983.0
+len(rank): 6040
+res / len(rank): 0.825
+Iteration 29 Fit [149.0 s], Evaluate [0.7 s]: HR_10 = 0.8250, MRR@10 = 0.5435, NDCG@10 = 0.6115, HR@20 = 0.8997, MRR@20 = 0.5488, NDCG@20 = 0.6306, HR@40 = 0.9596, MRR@40 = 0.5510, NDCG@40 = 0.6429
+1917/1917 [==============================] - 148s 77ms/step - loss: 0.1672 - val_loss: 0.3115
+pred_y: (6040, 101)
+rank: [ 0 24  0 ...  0  2  9]
+res: 5003.0
+len(rank): 6040
+res / len(rank): 0.8283112582781457
+Iteration 30 Fit [147.6 s], Evaluate [0.9 s]: HR_10 = 0.8283, MRR@10 = 0.5465, NDCG@10 = 0.6145, HR@20 = 0.8962, MRR@20 = 0.5513, NDCG@20 = 0.6318, HR@40 = 0.9604, MRR@40 = 0.5536, NDCG@40 = 0.6449
+1917/1917 [==============================] - 146s 76ms/step - loss: 0.1670 - val_loss: 0.3115
+pred_y: (6040, 101)
+rank: [ 0 24  0 ...  0  0  8]
+res: 4993.0
+len(rank): 6040
+res / len(rank): 0.8266556291390729
+Iteration 31 Fit [145.9 s], Evaluate [0.7 s]: HR_10 = 0.8267, MRR@10 = 0.5448, NDCG@10 = 0.6129, HR@20 = 0.8983, MRR@20 = 0.5499, NDCG@20 = 0.6312, HR@40 = 0.9599, MRR@40 = 0.5521, NDCG@40 = 0.6438
+1917/1917 [==============================] - 139s 73ms/step - loss: 0.1663 - val_loss: 0.3162
+pred_y: (6040, 101)
+rank: [ 0 23  1 ...  0  1 10]
+res: 5012.0
+len(rank): 6040
+res / len(rank): 0.8298013245033112
+Iteration 32 Fit [139.3 s], Evaluate [0.7 s]: HR_10 = 0.8298, MRR@10 = 0.5462, NDCG@10 = 0.6146, HR@20 = 0.8987, MRR@20 = 0.5511, NDCG@20 = 0.6322, HR@40 = 0.9613, MRR@40 = 0.5533, NDCG@40 = 0.6450
+1917/1917 [==============================] - 134s 70ms/step - loss: 0.1660 - val_loss: 0.3187
+pred_y: (6040, 101)
+rank: [ 0 21  1 ...  0  1  7]
+res: 5005.0
+len(rank): 6040
+res / len(rank): 0.8286423841059603
+Iteration 33 Fit [134.2 s], Evaluate [0.7 s]: HR_10 = 0.8286, MRR@10 = 0.5465, NDCG@10 = 0.6146, HR@20 = 0.8970, MRR@20 = 0.5514, NDCG@20 = 0.6320, HR@40 = 0.9603, MRR@40 = 0.5537, NDCG@40 = 0.6450
+1917/1917 [==============================] - 143s 75ms/step - loss: 0.1656 - val_loss: 0.3160
+pred_y: (6040, 101)
+rank: [ 0 32  0 ...  0  1  7]
+res: 5001.0
+len(rank): 6040
+res / len(rank): 0.8279801324503311
+Iteration 34 Fit [143.5 s], Evaluate [0.8 s]: HR_10 = 0.8280, MRR@10 = 0.5450, NDCG@10 = 0.6132, HR@20 = 0.8993, MRR@20 = 0.5500, NDCG@20 = 0.6314, HR@40 = 0.9599, MRR@40 = 0.5522, NDCG@40 = 0.6438
+1917/1917 [==============================] - 146s 76ms/step - loss: 0.1653 - val_loss: 0.3184
+pred_y: (6040, 101)
+rank: [ 0 27  0 ...  0  6  8]
+res: 4975.0
+len(rank): 6040
+res / len(rank): 0.8236754966887417
+Iteration 35 Fit [145.8 s], Evaluate [0.9 s]: HR_10 = 0.8237, MRR@10 = 0.5450, NDCG@10 = 0.6123, HR@20 = 0.8974, MRR@20 = 0.5503, NDCG@20 = 0.6312, HR@40 = 0.9601, MRR@40 = 0.5525, NDCG@40 = 0.6440
+1917/1917 [==============================] - 146s 76ms/step - loss: 0.1650 - val_loss: 0.3290
+pred_y: (6040, 101)
+rank: [ 0 28  1 ...  0  1  7]
+res: 4995.0
+len(rank): 6040
+res / len(rank): 0.8269867549668874
+Iteration 36 Fit [146.4 s], Evaluate [0.9 s]: HR_10 = 0.8270, MRR@10 = 0.5460, NDCG@10 = 0.6137, HR@20 = 0.8967, MRR@20 = 0.5509, NDCG@20 = 0.6315, HR@40 = 0.9581, MRR@40 = 0.5531, NDCG@40 = 0.6441
+1917/1917 [==============================] - 144s 75ms/step - loss: 0.1646 - val_loss: 0.3180
+pred_y: (6040, 101)
+rank: [ 0 24  1 ...  0  4  8]
+res: 4979.0
+len(rank): 6040
+res / len(rank): 0.8243377483443709
+Iteration 37 Fit [143.7 s], Evaluate [0.7 s]: HR_10 = 0.8243, MRR@10 = 0.5455, NDCG@10 = 0.6129, HR@20 = 0.8974, MRR@20 = 0.5507, NDCG@20 = 0.6315, HR@40 = 0.9594, MRR@40 = 0.5529, NDCG@40 = 0.6442
+1917/1917 [==============================] - 134s 70ms/step - loss: 0.1643 - val_loss: 0.3205
+pred_y: (6040, 101)
+rank: [ 0 32  0 ...  0  0  9]
+res: 4992.0
+len(rank): 6040
+res / len(rank): 0.8264900662251655
+Iteration 38 Fit [134.2 s], Evaluate [0.7 s]: HR_10 = 0.8265, MRR@10 = 0.5454, NDCG@10 = 0.6134, HR@20 = 0.8983, MRR@20 = 0.5504, NDCG@20 = 0.6316, HR@40 = 0.9603, MRR@40 = 0.5526, NDCG@40 = 0.6443
+1917/1917 [==============================] - 133s 69ms/step - loss: 0.1640 - val_loss: 0.3224
+pred_y: (6040, 101)
+rank: [ 0 36  1 ...  0  3  8]
+res: 5015.0
+len(rank): 6040
+res / len(rank): 0.8302980132450332
+Iteration 39 Fit [132.8 s], Evaluate [0.7 s]: HR_10 = 0.8303, MRR@10 = 0.5448, NDCG@10 = 0.6137, HR@20 = 0.8975, MRR@20 = 0.5495, NDCG@20 = 0.6308, HR@40 = 0.9606, MRR@40 = 0.5518, NDCG@40 = 0.6438
+1917/1917 [==============================] - 151s 79ms/step - loss: 0.1637 - val_loss: 0.3175
+pred_y: (6040, 101)
+rank: [ 0 20  1 ...  0  4  9]
+res: 5008.0
+len(rank): 6040
+res / len(rank): 0.8291390728476821
+Iteration 40 Fit [151.0 s], Evaluate [0.8 s]: HR_10 = 0.8291, MRR@10 = 0.5486, NDCG@10 = 0.6163, HR@20 = 0.8998, MRR@20 = 0.5536, NDCG@20 = 0.6343, HR@40 = 0.9589, MRR@40 = 0.5557, NDCG@40 = 0.6465

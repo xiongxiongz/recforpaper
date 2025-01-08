@@ -12,8 +12,7 @@ def scaled_dot_product_attention(q, k, v, mask):
     """
     mat_qk = tf.matmul(q, k, transpose_b=True)  # (None, seq_len, seq_len)
     # Scaled
-    # dk = tf.cast(k.shape[-1], dtype=tf.float32)
-    dk = tf.cast(64, dtype=tf.float32)
+    dk = tf.cast(k.shape[-1], dtype=tf.float32)
     scaled_att_logits = mat_qk / tf.sqrt(dk)
 
     paddings = tf.ones_like(scaled_att_logits) * (-2 ** 32 + 1)  # (None, seq_len, seq_len)

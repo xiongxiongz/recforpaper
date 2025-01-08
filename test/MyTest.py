@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import pickle
 import os
+import tensorflow as tf
 
 
 def generate_movie_seq():
@@ -170,13 +171,75 @@ if __name__ == '__main__':
 
     # merge
     scaled_attention_1_st = scaled_attention_1_st + scaled_attention_2 + scaled_attention_3 + scaled_attention_4
-    # scaled_attention_1_st = self.dense1_1(scaled_attention_1_st)
     scaled_attention_2_st = scaled_attention_2_st + scaled_attention_1 + scaled_attention_3 + scaled_attention_4
-    # scaled_attention_2_st = self.dense2_2(scaled_attention_2_st)
     scaled_attention_3_st = scaled_attention_3_st + scaled_attention_1 + scaled_attention_2 + scaled_attention_4
-    # scaled_attention_3_st = self.dense3_3(scaled_attention_3_st)
     scaled_attention_4_st = scaled_attention_4_st + scaled_attention_1 + scaled_attention_2 + scaled_attention_3
-    # scaled_attention_4_st = self.dense4_4(scaled_attention_4_st)
     par_output = [scaled_attention_1_st, scaled_attention_2_st, scaled_attention_3_st, scaled_attention_4_st]
 
     outputs = tf.concat(par_output, axis=-1)
+    ##########################################################
+    self.depthwise1 = DepthwiseConv2D(
+        kernel_size=(3, 1),
+        depth_multiplier=1,  # 每个通道独立卷积
+        padding='same',
+        use_bias=False
+    )
+    self.point_conv1 = Conv1D(filters=64, kernel_size=1, padding='same', activation='relu')
+    self.recover_dense1 = Dense(units=d_model)
+
+    self.depthwise2 = DepthwiseConv2D(
+        kernel_size=(5, 1),
+        depth_multiplier=1,  # 每个通道独立卷积
+        padding='same',
+        use_bias=False
+    )
+    self.point_conv2 = Conv1D(filters=64, kernel_size=1, padding='same', activation='relu')
+    self.recover_dense2 = Dense(units=d_model)
+
+    attention_encode = scaled_dot_product_attention(q, k, v, mask)
+    scaled_attention1 = tf.expand_dims(attention_encode, axis=-1)
+    scaled_attention1 = self.depthwise1(scaled_attention1)
+    scaled_attention1 = tf.squeeze(scaled_attention1, axis=-1)
+    scaled_attention1 = self.point_conv1(scaled_attention1)
+    scaled_attention1 = self.recover_dense1(scaled_attention1)
+
+    scaled_attention2 = tf.expand_dims(attention_encode, axis=-1)
+    scaled_attention2 = self.depthwise2(scaled_attention2)
+    scaled_attention2 = tf.squeeze(scaled_attention2, axis=-1)
+    scaled_attention2 = self.point_conv2(scaled_attention2)
+    scaled_attention2 = self.recover_dense2(scaled_attention2)
+    outputs = attention_encode + scaled_attention1 + scaled_attention2
+    #################################################
+    self.depthwise_conv = DepthwiseConv2D(
+        kernel_size=(1, 1),
+        depth_multiplier=1,  # 每个通道独立卷积
+        padding='same',
+        use_bias=False
+    )
+    self.point_conv = Conv1D(filters=user_dim // 4, kernel_size=1, padding='same')
+    self.dense = Dense(units=user_dim // 4, activation="relu")
+    self.user_dropout = Dropout(0.3)
+    self.conv = Conv1D(filters=user_dim, kernel_size=1)
+
+    origin_user_encode = self.user_embedding(inputs['user'])  # (None, 1, dim)
+    origin_user_embed = tf.expand_dims(origin_user_encode, axis=-1)  # (None, 1, dim, 1)
+    origin_user_embed = self.depthwise_conv(origin_user_embed)
+    origin_user_embed = tf.squeeze(origin_user_embed, axis=-1)
+    origin_user_embed = self.point_conv(origin_user_embed)
+    origin_user_embed = self.dense(origin_user_embed)
+    origin_user_embed = self.user_dropout(origin_user_embed)
+    origin_user_embed = self.conv(origin_user_embed)
+    user_embed = tf.tile(origin_user_embed, [1, self.seq_len, 1])  # (None, seq_len, dim)
+    seq_embed = tf.concat([seq_embed, user_embed], axis=-1)  # (None, seq_len, item_dim + user_dim)
+    #################################################
+
+    self.dense = Dense(units=user_dim // 4, activation="relu")
+    self.user_dropout = Dropout(0.3)
+    self.conv = Conv1D(filters=user_dim, kernel_size=1)
+
+    origin_user_encode = self.user_embedding(inputs['user'])  # (None, 1, dim)
+    origin_user_embed = self.dense(origin_user_encode)
+    origin_user_embed = self.user_dropout(origin_user_embed)
+    origin_user_embed = self.conv(origin_user_embed)
+    user_embed = tf.tile(origin_user_embed, [1, self.seq_len, 1])  # (None, seq_len, dim)
+    seq_embed = tf.concat([seq_embed, user_embed], axis=-1)  # (None, seq_len, item_dim + user_dim)

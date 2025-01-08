@@ -8,15 +8,15 @@ import tensorflow as tf
 from tensorflow.keras import Model, regularizers
 from tensorflow.keras.layers import Layer, Dense, LayerNormalization, Dropout, Embedding, Input, Conv1D, DepthwiseConv2D
 from tensorflow.keras.regularizers import l2
-import numpy as np
 from reclearn.layers import TransformerEncoder
 from reclearn.models.losses import get_loss, get_loss_with_rl
+from reclearn.layers.core import TransformerEncoder2
 
 
 class SASRec(Model):
     def __init__(self, item_num, user_num, item_dim, user_dim, seq_len=100, blocks=1, num_heads=1, ffn_hidden_unit=128,
                  dnn_dropout=0., layer_norm_eps=1e-6, use_l2norm=False,
-                 loss_name="binary_cross_entropy_loss", gamma=0.5, embed_reg=0., seed=None):
+                 loss_name="binary_cross_entropy_loss", gamma=0.5, embed_reg=0., seed=None, neg_num=50):
         """Self-Attentive Sequential Recommendation
         :param item_num: An integer type. The largest item index + 1.
         :param embed_dim: An integer type. Embedding dimension of item vector.
@@ -49,21 +49,25 @@ class SASRec(Model):
                                         output_dim=item_dim,
                                         embeddings_initializer='random_normal',
                                         embeddings_regularizer=l2(embed_reg))
+        '''
         self.pos_embedding = Embedding(input_dim=seq_len,
                                        input_length=1,
-                                       output_dim=item_dim + user_dim,
+                                       output_dim=item_dim,
                                        embeddings_initializer='random_normal',
                                        embeddings_regularizer=l2(embed_reg))
         '''
         self.pos_embedding_trainable = self.add_weight(
-            shape=[1, seq_len, embed_dim],
+            shape=[1, seq_len, item_dim+user_dim],
             initializer='glorot_uniform',
             trainable=True,
             name='pos_embedding_trainable'
         )
-        self.gate_dense = Dense(embed_dim, activation='sigmoid')
-        '''
+        self.fc = Dense((item_dim+user_dim) // 2, activation='relu')
+        self.gate_dense = Dense(item_dim+user_dim, activation='sigmoid')
 
+        self.dense = Dense(units=user_dim // 4, activation="relu")
+        self.user_dropout = Dropout(0.3)
+        self.conv = Conv1D(filters=user_dim, kernel_size=1)
         self.user_embedding = Embedding(input_dim=user_num,
                                        output_dim=user_dim,
                                        input_length=1,
@@ -78,16 +82,6 @@ class SASRec(Model):
         self.noise_layer = [TransformerEncoder(embed_dim * 2, num_heads, ffn_hidden_unit,
                                                  dnn_dropout, layer_norm_eps) for _ in range(blocks)]
         '''
-        self.depthwise_conv = DepthwiseConv2D(
-            kernel_size=(1, 1),
-            depth_multiplier=1,     # 每个通道独立卷积
-            padding='same',
-            use_bias=False
-        )
-        self.point_conv = Conv1D(filters=15, kernel_size=1, padding='same')
-        self.dense = Dense(units=15, activation="relu")
-        self.user_dropout = Dropout(0.3)
-        self.conv = Conv1D(filters=user_dim, kernel_size=1)
         # norm
         self.use_l2norm = use_l2norm
         # loss name
@@ -97,34 +91,38 @@ class SASRec(Model):
         self.seq_len = seq_len
         # seed
         tf.random.set_seed(seed)
+        # neg_num
+        self.neg_num = neg_num
 
     def call(self, inputs):
         # seq info
         seq_embed = self.item_embedding(inputs['click_seq'])  # (None, seq_len, dim)
 
-        origin_user_encode = self.user_embedding(inputs['user'])    # (None, 1, dim)
-        origin_user_embed = tf.expand_dims(origin_user_encode, axis=-1)    # (None, 1, dim, 1)
-        origin_user_embed = self.depthwise_conv(origin_user_embed)
-        origin_user_embed = tf.squeeze(origin_user_embed, axis=-1)
-        origin_user_embed = self.point_conv(origin_user_embed)
-        origin_user_embed = self.dense(origin_user_embed)
-        origin_user_embed = self.user_dropout(origin_user_embed)
-        origin_user_embed = self.conv(origin_user_embed)
-        user_embed = tf.tile(origin_user_embed, [1, self.seq_len, 1])  # (None, seq_len, dim)
-        
-        seq_embed = tf.concat([seq_embed, user_embed], axis=-1)  # (None, seq_len, item_dim + user_dim)
-
         # mask
         mask = tf.expand_dims(tf.cast(tf.not_equal(inputs['click_seq'], 0), dtype=tf.float32), axis=-1)  # (None, seq_len, 1)
         # pos encoding
+        # squeeze = tf.reduce_mean(seq_embed, axis=1)
+        # excitation = self.fc(squeeze)
+        # gate = self.gate_dense(excitation)
+        # gate = tf.expand_dims(gate, axis=1)
+        # gate_pos_embed = gate * self.pos_embedding_trainable
+        # seq_embed += gate_pos_embed
+        '''
         pos_encoding = tf.expand_dims(self.pos_embedding(tf.range(self.seq_len)), axis=0)  # (1, seq_len, embed_dim)
         seq_embed += pos_encoding  # (None, seq_len, embed_dim), broadcasting
         '''
-        pos_encoding_train = tf.tile(self.pos_embedding_trainable, [tf.shape(seq_embed)[0], 1, 1])
-        combined = tf.multiply(seq_embed, pos_encoding_train)
-        gate = self.gate_dense(combined)
-        seq_embed += gate * pos_encoding_train
-        '''
+        origin_user_encode = self.user_embedding(inputs['user'])  # (None, 1, user_dim)
+        origin_user_embed = self.dense(origin_user_encode)
+        origin_user_embed = self.user_dropout(origin_user_embed)
+        origin_user_embed = self.conv(origin_user_embed)
+        user_embed = tf.tile(origin_user_embed, [1, self.seq_len, 1])  # (None, seq_len, user_dim)
+        seq_embed = tf.concat([seq_embed, user_embed], axis=-1)  # (None, seq_len, item_dim + user_dim)
+        squeeze = tf.reduce_mean(seq_embed, axis=1)
+        excitation = self.fc(squeeze)
+        gate = self.gate_dense(excitation)
+        gate = tf.expand_dims(gate, axis=1)
+        gate_pos_embed = gate * self.pos_embedding_trainable
+        seq_embed += gate_pos_embed
         '''
         genre_encoding = self.genre_embedding(inputs['genre_index_seq'])       # (batch, seq_len, 6, emb_dim)
         genre_encoding = tf.reduce_mean(genre_encoding, axis=2)       # (batch, seq_len, emb_dim)
@@ -141,12 +139,12 @@ class SASRec(Model):
         # user_info = tf.reduce_mean(att_outputs, axis=1)  # (None, dim)
         user_info = tf.slice(att_outputs, begin=[0, self.seq_len-1, 0], size=[-1, 1, -1])  # (None, 1, embed_dim)
         # item info contain pos_info and neg_info.
-        pos_info = self.item_embedding(tf.reshape(inputs['pos_item'], [-1, ]))  # (None, dim)
+        pos_info = tf.expand_dims(self.item_embedding(tf.reshape(inputs['pos_item'], [-1, ])), axis=1)  # (None, 1, dim)
         neg_info = self.item_embedding(inputs['neg_item'])  # (None, neg_num, dim)
 
         neg_num = neg_info.shape[1]
         if neg_num is None:
-            neg_num = 50
+            neg_num = self.neg_num
         neg_user_emb = [origin_user_encode for _ in range(neg_num)]
         neg_user_emb = tf.concat(neg_user_emb, axis=1)
 
@@ -156,11 +154,12 @@ class SASRec(Model):
             neg_info = tf.math.l2_normalize(neg_info, axis=-1)
             user_info = tf.math.l2_normalize(user_info, axis=-1)
         '''
-        pos_scores = tf.reduce_sum(tf.multiply(user_info, tf.expand_dims(pos_info, axis=1)), axis=-1)  # (None, 1)
+        pos_scores = tf.reduce_sum(tf.multiply(user_info, pos_info), axis=-1)  # (None, 1)
         neg_scores = tf.reduce_sum(tf.multiply(user_info, neg_info), axis=-1)  # (None, neg_num)
         '''
+        pos_info_user_encode = tf.concat([pos_info, origin_user_encode], axis=-1)
         pos_scores = tf.reduce_sum(
-            tf.multiply(user_info, tf.concat([tf.expand_dims(pos_info, axis=1), origin_user_encode], axis=-1)),
+            tf.multiply(user_info, pos_info_user_encode),
             axis=-1)  # (None, 1)
         neg_scores = tf.reduce_sum(tf.multiply(user_info, tf.concat([neg_info, neg_user_emb], axis=-1)),
                                    axis=-1)  # (None, neg_num)
@@ -168,7 +167,7 @@ class SASRec(Model):
         # loss
         # self.add_loss(get_loss(pos_scores, neg_scores, self.loss_name, self.gamma))
         logits = tf.concat([pos_scores, neg_scores], axis=-1)
-        self.add_loss(get_loss_with_rl(pos_scores, neg_scores, self.loss_name, logits, [pos_scores, neg_scores], self.gamma))
+        self.add_loss(get_loss_with_rl(pos_scores, neg_scores, self.loss_name, logits, self.gamma))
         return logits
 
     def summary(self):

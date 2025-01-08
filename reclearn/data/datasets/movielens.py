@@ -125,7 +125,7 @@ def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num):
         print('itemnum: ', itemnum)
     for user in tqdm(user2seq):
         nfeedback = len(user2seq[user])
-        if nfeedback >= 3:
+        if nfeedback > 3:
             if mode == 'train':
                 user_seq[user] = user2seq[user][:-2]
             elif mode == 'val':
@@ -134,6 +134,7 @@ def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num):
                 user_seq[user] = user2seq[user]
     for user in tqdm(user_seq):
         if mode == 'train':
+            '''除了第一个item，其他的item都可以作为正样本
             for i in range(len(user_seq[user])-1):
                 if i + 1 >= seq_len:
                     tmp = user_seq[user][i + 1 - seq_len:i + 1]
@@ -144,6 +145,23 @@ def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num):
                 click_seqs.append(tmp)
                 pos_items.append(user_seq[user][i + 1])
                 neg_items.append(neg_item)
+            '''
+            if len(user_seq[user][:-1]) >= seq_len:
+                for i in range(seq_len-1, len(user_seq[user][:-1])):
+                    tmp = user_seq[user][i+1 - seq_len:i+1]
+                    neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+                    users.append([user])
+                    click_seqs.append(tmp)
+                    pos_items.append(user_seq[user][i+1])
+                    neg_items.append(neg_item)
+            else:
+                tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
+                neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+                users.append([user])
+                click_seqs.append(tmp)
+                pos_items.append(user_seq[user][-1])
+                neg_items.append(neg_item)
+
         else:
             if len(user_seq[user][:-1]) >= seq_len:
                 tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]

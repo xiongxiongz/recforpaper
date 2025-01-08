@@ -82,7 +82,8 @@ def main(argv):
         'loss_name': FLAGS.loss_name,
         'gamma': FLAGS.gamma,
         'embed_reg': FLAGS.embed_reg,
-        'seed': FLAGS.seed
+        'seed': FLAGS.seed,
+        'neg_num': FLAGS.neg_num
     }
     # 获取当前时间作为模型文件名后缀
     start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")  # 格式：20241130_123456
@@ -116,7 +117,7 @@ def main(argv):
             results.append([epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg'], eval_dict['hr_20'], eval_dict['mrr_20'], eval_dict['ndcg_20'], eval_dict['hr_40'], eval_dict['mrr_40'], eval_dict['ndcg_40']])
         # write logs
         pd.DataFrame(results, columns=['Iteration', 'fit_time', 'evaluate_time', 'hr@10', 'mrr@10', 'ndcg@10', 'hr@20', 'mrr@20', 'ndcg@20', 'hr@40', 'mrr@40', 'ndcg@40']).\
-            to_csv("logs/SASRec_log_{}_maxlen_{}_dim_{}_blocks_{}_heads_{}.csv".format(start_time, FLAGS.seq_len, FLAGS.embed_dim, FLAGS.blocks, FLAGS.num_heads), index=False)
+            to_csv("logs/SASRec_log_{}_maxlen_{}_blocks_{}_heads_{}.csv".format(start_time, FLAGS.seq_len, FLAGS.blocks, FLAGS.num_heads), index=False)
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
