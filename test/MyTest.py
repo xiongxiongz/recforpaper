@@ -1,10 +1,8 @@
 import json
 import random
 
-import numpy as np
 from tqdm import tqdm
 import pickle
-import os
 import tensorflow as tf
 
 
@@ -177,38 +175,6 @@ if __name__ == '__main__':
     par_output = [scaled_attention_1_st, scaled_attention_2_st, scaled_attention_3_st, scaled_attention_4_st]
 
     outputs = tf.concat(par_output, axis=-1)
-    ##########################################################
-    self.depthwise1 = DepthwiseConv2D(
-        kernel_size=(3, 1),
-        depth_multiplier=1,  # 每个通道独立卷积
-        padding='same',
-        use_bias=False
-    )
-    self.point_conv1 = Conv1D(filters=64, kernel_size=1, padding='same', activation='relu')
-    self.recover_dense1 = Dense(units=d_model)
-
-    self.depthwise2 = DepthwiseConv2D(
-        kernel_size=(5, 1),
-        depth_multiplier=1,  # 每个通道独立卷积
-        padding='same',
-        use_bias=False
-    )
-    self.point_conv2 = Conv1D(filters=64, kernel_size=1, padding='same', activation='relu')
-    self.recover_dense2 = Dense(units=d_model)
-
-    attention_encode = scaled_dot_product_attention(q, k, v, mask)
-    scaled_attention1 = tf.expand_dims(attention_encode, axis=-1)
-    scaled_attention1 = self.depthwise1(scaled_attention1)
-    scaled_attention1 = tf.squeeze(scaled_attention1, axis=-1)
-    scaled_attention1 = self.point_conv1(scaled_attention1)
-    scaled_attention1 = self.recover_dense1(scaled_attention1)
-
-    scaled_attention2 = tf.expand_dims(attention_encode, axis=-1)
-    scaled_attention2 = self.depthwise2(scaled_attention2)
-    scaled_attention2 = tf.squeeze(scaled_attention2, axis=-1)
-    scaled_attention2 = self.point_conv2(scaled_attention2)
-    scaled_attention2 = self.recover_dense2(scaled_attention2)
-    outputs = attention_encode + scaled_attention1 + scaled_attention2
     #################################################
     self.depthwise_conv = DepthwiseConv2D(
         kernel_size=(1, 1),

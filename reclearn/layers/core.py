@@ -159,133 +159,28 @@ class MultiHeadAttention2(Layer):
         super(MultiHeadAttention2, self).__init__()
         self.d_model = d_model
         self.num_heads = num_heads
-        self.dimension_per_head = d_model // num_heads
         self.wq = Dense(d_model, activation=None)
         self.wk = Dense(d_model, activation=None)
         self.wv = Dense(d_model, activation=None)
 
-        self.depthwise1 = DepthwiseConv2D(
-            kernel_size=(3, 1),
-            depth_multiplier=1,  # 每个通道独立卷积
-            padding='same',
-            use_bias=False
-        )
-        self.point_conv1 = Conv1D(filters=self.dimension_per_head // 4, kernel_size=1, padding='same',
-                                  activation='relu')
-        self.recover_dense1 = Dense(units=self.dimension_per_head)
-        self.depthwise2 = DepthwiseConv2D(
-            kernel_size=(7, 1),
-            depth_multiplier=1,  # 每个通道独立卷积
-            padding='same',
-            use_bias=False
-        )
-        self.point_conv2 = Conv1D(filters=self.dimension_per_head // 4, kernel_size=1, padding='same',
-                                  activation='relu')
-        self.recover_dense2 = Dense(units=self.dimension_per_head)
-        self.depthwise3 = DepthwiseConv2D(
-            kernel_size=(11, 1),
-            depth_multiplier=1,  # 每个通道独立卷积
-            padding='same',
-            use_bias=False
-        )
-        self.point_conv3 = Conv1D(filters=self.dimension_per_head // 4, kernel_size=1, padding='same',
-                                  activation='relu')
-        self.recover_dense3 = Dense(units=self.dimension_per_head)
-        self.depthwise4 = DepthwiseConv2D(
-            kernel_size=(15, 1),
-            depth_multiplier=1,  # 每个通道独立卷积
-            padding='same',
-            use_bias=False
-        )
-        self.point_conv4 = Conv1D(filters=self.dimension_per_head // 4, kernel_size=1, padding='same',
-                                  activation='relu')
-        self.recover_dense4 = Dense(units=self.dimension_per_head)
     def call(self, q, k, v, mask):
         q = self.wq(q)  # (None, seq_len, d_model)
         k = self.wk(k)  # (None, seq_len, d_model)
         v = self.wv(v)  # (None, seq_len, d_model)
         # split d_model into num_heads * depth
-        '''
+
         seq_len, d_model = q.shape[1], q.shape[2]
         q = split_heads(q, seq_len, self.num_heads, q.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
         k = split_heads(k, seq_len, self.num_heads, k.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
         v = split_heads(v, seq_len, self.num_heads, v.shape[2] // self.num_heads)  # (None, num_heads, seq_len, depth)
         # mask
         mask = tf.tile(tf.expand_dims(mask, axis=1), [1, self.num_heads, 1, 1])  # (None, num_heads, seq_len, 1)
-        # attention
         scaled_attention = scaled_dot_product_attention(q, k, v,
                                                         mask)  # (None, num_heads, seq_len, d_model // num_heads)
-        '''
-        '''
-        par_output = []
-        dimension_per_head = self.d_model // self.num_heads
-        for i in range(self.num_heads):
-            par_q = q[..., dimension_per_head * i: dimension_per_head * (i+1)]
-            par_k = k[..., dimension_per_head * i: dimension_per_head * (i+1)]
-            par_v = v[..., dimension_per_head * i: dimension_per_head * (i+1)]
-            # attention
-            scaled_attention = scaled_dot_product_attention(par_q, par_k, par_v, mask)  # (None, num_heads, seq_len, d_model // num_heads)
-            par_output.append(scaled_attention)
-        outputs = tf.concat(par_output, axis=-1)
-        '''
-        dimension_per_head = self.d_model // self.num_heads
-        par_q_1 = q[..., dimension_per_head * 0: dimension_per_head * 1]
-        par_k_1 = k[..., dimension_per_head * 0: dimension_per_head * 1]
-        par_v_1 = v[..., dimension_per_head * 0: dimension_per_head * 1]
-        scaled_attention_1_st = scaled_dot_product_attention(par_q_1, par_k_1, par_v_1,
-                                                             mask)  # (None, num_heads, seq_len, d_model // num_heads)
-        scaled_attention_1 = scaled_attention_1_st
-        scaled_attention_1 = tf.expand_dims(scaled_attention_1, axis=-1)
-        scaled_attention_1 = self.depthwise1(scaled_attention_1)
-        scaled_attention_1 = tf.squeeze(scaled_attention_1, axis=-1)
-        scaled_attention_1 = self.point_conv1(scaled_attention_1)
-        scaled_attention_1 = self.recover_dense1(scaled_attention_1)
-
-        par_q_2 = q[..., dimension_per_head * 1: dimension_per_head * 2]
-        par_k_2 = k[..., dimension_per_head * 1: dimension_per_head * 2]
-        par_v_2 = v[..., dimension_per_head * 1: dimension_per_head * 2]
-        scaled_attention_2_st = scaled_dot_product_attention(par_q_2, par_k_2, par_v_2,
-                                                             mask)  # (None, num_heads, seq_len, d_model // num_heads)
-        scaled_attention_2 = scaled_attention_2_st
-        scaled_attention_2 = tf.expand_dims(scaled_attention_2, axis=-1)
-        scaled_attention_2 = self.depthwise2(scaled_attention_2)
-        scaled_attention_2 = tf.squeeze(scaled_attention_2, axis=-1)
-        scaled_attention_2 = self.point_conv2(scaled_attention_2)
-        scaled_attention_2 = self.recover_dense2(scaled_attention_2)
-
-        par_q_3 = q[..., dimension_per_head * 2: dimension_per_head * 3]
-        par_k_3 = k[..., dimension_per_head * 2: dimension_per_head * 3]
-        par_v_3 = v[..., dimension_per_head * 2: dimension_per_head * 3]
-        scaled_attention_3_st = scaled_dot_product_attention(par_q_3, par_k_3, par_v_3,
-                                                             mask)  # (None, num_heads, seq_len, d_model // num_heads)
-        scaled_attention_3 = scaled_attention_3_st
-        scaled_attention_3 = tf.expand_dims(scaled_attention_3, axis=-1)
-        scaled_attention_3 = self.depthwise3(scaled_attention_3)
-        scaled_attention_3 = tf.squeeze(scaled_attention_3, axis=-1)
-        scaled_attention_3 = self.point_conv3(scaled_attention_3)
-        scaled_attention_3 = self.recover_dense3(scaled_attention_3)
-
-        par_q_4 = q[..., dimension_per_head * 3: dimension_per_head * 4]
-        par_k_4 = k[..., dimension_per_head * 3: dimension_per_head * 4]
-        par_v_4 = v[..., dimension_per_head * 3: dimension_per_head * 4]
-        scaled_attention_4_st = scaled_dot_product_attention(par_q_4, par_k_4, par_v_4,
-                                                             mask)  # (None, num_heads, seq_len, d_model // num_heads)
-        scaled_attention_4 = scaled_attention_4_st
-        scaled_attention_4 = tf.expand_dims(scaled_attention_4, axis=-1)
-        scaled_attention_4 = self.depthwise4(scaled_attention_4)
-        scaled_attention_4 = tf.squeeze(scaled_attention_4, axis=-1)
-        scaled_attention_4 = self.point_conv4(scaled_attention_4)
-        scaled_attention_4 = self.recover_dense4(scaled_attention_4)
-
-        # merge
-        scaled_attention_1_st = scaled_attention_1_st + scaled_attention_2 + scaled_attention_3 + scaled_attention_4
-        scaled_attention_2_st = scaled_attention_2_st + scaled_attention_1 + scaled_attention_3 + scaled_attention_4
-        scaled_attention_3_st = scaled_attention_3_st + scaled_attention_1 + scaled_attention_2 + scaled_attention_4
-        scaled_attention_4_st = scaled_attention_4_st + scaled_attention_1 + scaled_attention_2 + scaled_attention_3
-        par_output = [scaled_attention_1_st, scaled_attention_2_st, scaled_attention_3_st, scaled_attention_4_st]
-        outputs = tf.concat(par_output, axis=-1)
         # reshape
-        # outputs = tf.reshape(tf.transpose(scaled_attention, [0, 2, 1, 3]), [-1, seq_len, d_model])  # (None, seq_len, d_model)
+        outputs = tf.reshape(tf.transpose(scaled_attention, [0, 2, 1, 3]),
+                             [-1, seq_len, d_model])  # (None, seq_len, d_model)
+
         return outputs
 
 class MultiHeadAttention(Layer):
@@ -365,6 +260,7 @@ class MultiHeadAttention(Layer):
             par_output.append(scaled_attention)
         outputs = tf.concat(par_output, axis=-1)
         '''
+
         scaled_attention_1_st = outputs[..., self.dimension_per_head * 0: self.dimension_per_head * 1]
         scaled_attention_1 = scaled_attention_1_st
         scaled_attention_1 = tf.expand_dims(scaled_attention_1, axis=-1)

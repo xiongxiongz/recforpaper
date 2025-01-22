@@ -1,13 +1,13 @@
 import os
 import random
-import time
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from tqdm import tqdm
-from collections import defaultdict
+from collections import defaultdict, Counter
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import json
+import math
+from multiprocessing import Pool
 
 MAX_ITEM_NUM = 3953
 MAX_USER_NUM = 6041
@@ -106,76 +106,142 @@ def load_data(file_path, neg_num, max_item_num):
     return {'user': data[:, 0].astype(int), 'pos_item': data[:, 1].astype(int), 'neg_item': np.array(neg_items)}
 
 
-def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num):
-    users, click_seqs, pos_items, neg_items = [], [], [], []
+def load_user2seq(file_path):
     usernum = 0
     itemnum = 0
     user2seq = defaultdict(list)
-    user_seq = {}
     with open(file_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
         for line in tqdm(lines):
             u, i = line.strip().split(' ')
             u = int(u)
             i = int(i)
+            user2seq[u].append(i)
             usernum = max(u, usernum)
             itemnum = max(i, itemnum)
-            user2seq[u].append(i)
         print('usernum: ', usernum)
         print('itemnum: ', itemnum)
+    return user2seq
+
+
+def process_user_data(user, user_seq, mode, seq_len, neg_num, max_item_num, user_bucket, user_bin):
+    users, click_seqs, pos_items, neg_items = [], [], [], []
+    user_buckets = []
+    user_bins = []
+    if mode == 'train':
+        # 除了第一个item，其他的item都可以作为正样本
+        for i in range(len(user_seq[user]) - 1):
+            if i + 1 >= seq_len:
+                tmp = user_seq[user][i + 1 - seq_len:i + 1]
+                tmp_bucket = user_bucket[i + 1 - seq_len:i + 1]
+                tmp_bin = user_bin[i + 1 - seq_len:i + 1]
+            else:
+                tmp = [0] * (seq_len - i - 1) + user_seq[user][:i + 1]
+                tmp_bucket = [0] * (seq_len - i - 1) + user_bucket[:i + 1]
+                tmp_bin = [0] * (seq_len - i - 1) + user_bin[:i + 1]
+            neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+            users.append([user])
+            click_seqs.append(tmp)
+            pos_items.append(user_seq[user][i + 1])
+            neg_items.append(neg_item)
+            user_buckets.append(tmp_bucket)
+            user_bins.append(tmp_bin)
+    else:
+        if len(user_seq[user][:-1]) >= seq_len:
+            tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
+            tmp_bucket = user_bucket[:-1][len(user_bucket[:-1]) - seq_len:]
+            tmp_bin = user_bin[:-1][len(user_bin[:-1]) - seq_len:]
+        else:
+            tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
+            tmp_bucket = [0] * (seq_len - len(user_bucket[:-1])) + user_bucket[:-1]
+            tmp_bin = [0] * (seq_len - len(user_bin[:-1])) + user_bin[:-1]
+        neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+        users.append([user])
+        click_seqs.append(tmp)
+        pos_items.append(user_seq[user][-1])
+        neg_items.append(neg_item)
+        user_buckets.append(tmp_bucket)
+        user_bins.append(tmp_bin)
+
+    return users, click_seqs, pos_items, neg_items, user_buckets, user_bins
+
+
+def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num, max_user_num):
+    users, click_seqs, pos_items, neg_items = [], [], [], []
+    all_tf_idfs, bucket_ids = [], []
+    num_bins = 5
+    argue_popularity, argue_bucket_ids = [], []
+    argue_bins = 5
+    user2seq = defaultdict(list)
+    item2user = defaultdict(set)
+    user_tf_idf = defaultdict(list)
+    user_popularity = defaultdict(list)
+    user_seq = {}
+    user_bucket = {}
+    user_bin = {}
+    with open(file_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+        for line in tqdm(lines):
+            u, i = line.strip().split(' ')
+            u = int(u)
+            i = int(i)
+            user2seq[u].append(i)
+            item2user[i].add(u)
+    for u in tqdm(user2seq):
+        tf_idf, popularity = [], []
+        counter = Counter(user2seq[u])
+        for i in counter:
+            temp_tf_idf = counter[i] / len(user2seq[u]) * math.log(max_user_num / len(item2user[i]))
+            tf_idf.append(temp_tf_idf)
+            temp_popularity = counter[i] / len(user2seq[u]) * math.exp(len(item2user[i]) / max_user_num)
+            popularity.append(temp_popularity)
+        all_tf_idfs.extend(tf_idf)
+        argue_popularity.extend(popularity)
+        user_tf_idf[u] = tf_idf
+        user_popularity[u] = popularity
+    quantiles = np.percentile(all_tf_idfs, np.linspace(0, 100, num_bins + 1))
+    argue_quantiles = np.percentile(argue_popularity, np.linspace(0, 100, argue_bins + 1))
+    for u in tqdm(user2seq):
+        user_bucket[u] = np.digitize(user_tf_idf[u], quantiles, right=True).tolist()
+        user_bin[u] = np.digitize(user_popularity[u], argue_quantiles, right=True).tolist()
     for user in tqdm(user2seq):
         nfeedback = len(user2seq[user])
         if nfeedback > 3:
             if mode == 'train':
                 user_seq[user] = user2seq[user][:-2]
+                user_bucket[user] = user_bucket[user][:-2]
+                user_bin[user] = user_bin[user][:-2]
             elif mode == 'val':
                 user_seq[user] = user2seq[user][:-1]
+                user_bucket[user] = user_bucket[user][:-1]
+                user_bin[user] = user_bin[user][:-1]
             else:
                 user_seq[user] = user2seq[user]
-    for user in tqdm(user_seq):
-        if mode == 'train':
-            '''除了第一个item，其他的item都可以作为正样本
-            for i in range(len(user_seq[user])-1):
-                if i + 1 >= seq_len:
-                    tmp = user_seq[user][i + 1 - seq_len:i + 1]
-                else:
-                    tmp = [0] * (seq_len - i - 1) + user_seq[user][:i + 1]
-                neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-                users.append([user])
-                click_seqs.append(tmp)
-                pos_items.append(user_seq[user][i + 1])
-                neg_items.append(neg_item)
-            '''
-            if len(user_seq[user][:-1]) >= seq_len:
-                for i in range(seq_len-1, len(user_seq[user][:-1])):
-                    tmp = user_seq[user][i+1 - seq_len:i+1]
-                    neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-                    users.append([user])
-                    click_seqs.append(tmp)
-                    pos_items.append(user_seq[user][i+1])
-                    neg_items.append(neg_item)
-            else:
-                tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
-                neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-                users.append([user])
-                click_seqs.append(tmp)
-                pos_items.append(user_seq[user][-1])
-                neg_items.append(neg_item)
+    with Pool() as pool:
+        results = pool.starmap(
+            process_user_data,
+            [(user, user_seq, mode, seq_len, neg_num, max_item_num, user_bucket[user], user_bin[user]) for user in user_seq]
+        )
 
-        else:
-            if len(user_seq[user][:-1]) >= seq_len:
-                tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
-            else:
-                tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
-            neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-            users.append([user])
-            click_seqs.append(tmp)
-            pos_items.append(user_seq[user][-1])
-            neg_items.append(neg_item)
-    data = list(zip(users, click_seqs, pos_items, neg_items))
+    # 汇总结果
+    for result in tqdm(results):
+        users.extend(result[0])
+        click_seqs.extend(result[1])
+        pos_items.extend(result[2])
+        neg_items.extend(result[3])
+        bucket_ids.extend(result[4])
+        argue_bucket_ids.extend(result[5])
+
+    data = list(zip(users, click_seqs, pos_items, neg_items, bucket_ids, argue_bucket_ids))
     random.shuffle(data)
-    users, click_seqs, pos_items, neg_items = zip(*data)
-    data = {'user': np.array(users), 'click_seq': np.array(click_seqs), 'pos_item': np.array(pos_items), 'neg_item': np.array(neg_items)}
+    users, click_seqs, pos_items, neg_items, bucket_ids, argue_bucket_ids = zip(*data)
+    data = {'user': np.array(users, dtype=np.int32),
+            'click_seq': np.array(click_seqs, dtype=np.int32),
+            'pos_item': np.array(pos_items, dtype=np.int32),
+            'neg_item': np.array(neg_items, dtype=np.int32),
+            'bucket_id': np.array(bucket_ids, dtype=np.int32),
+            'argue_bucket_id': np.array(argue_bucket_ids, dtype=np.int32)
+            }
     return data
 
 

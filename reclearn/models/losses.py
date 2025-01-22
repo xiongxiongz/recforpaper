@@ -25,7 +25,7 @@ def get_loss(pos_scores, neg_scores, loss_name, gamma=None):
     return loss
 
 
-def get_loss_with_rl(pos_scores, neg_scores, loss_name, logits, gamma=None):
+def get_loss_with_rl(pos_scores, neg_scores, loss_name, gamma=None):
     """Get loss scores.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, 1].
@@ -40,7 +40,7 @@ def get_loss_with_rl(pos_scores, neg_scores, loss_name, logits, gamma=None):
     elif loss_name == 'hinge_loss':
         loss = hinge_loss(pos_scores, neg_scores, gamma)
     else:
-        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits)
+        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores)
     return loss
 
 
@@ -104,7 +104,7 @@ def binary_cross_entropy_loss(pos_scores, neg_scores):
     return loss
 
 
-def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits):
+def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores):
     """binary cross entropy loss.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, neg_num].
@@ -119,7 +119,6 @@ def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores, logits):
     # reward_loss_divergence = tf.reduce_mean(KLDivergence()(a_probs, b_probs))
     # contra_loss = tf.constant(0.5, dtype=reward_loss_divergence.dtype) * reward_loss_divergence
     loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores)) - tf.math.log(1 - tf.nn.sigmoid(neg_scores))) / 2
-    # rl_loss = 0.2 * cal_rl_loss(logits)
     return loss
 
 def cal_rl_loss(logits, k=10):
