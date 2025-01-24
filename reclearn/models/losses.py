@@ -44,6 +44,20 @@ def get_loss_with_rl(pos_scores, neg_scores, loss_name, gamma=None):
     return loss
 
 
+def get_loss_with_istarget(pos_logits, neg_logits, istarget):
+    """Get loss scores.
+    Args:
+        :param pos_logits: A tensor with shape of [batch_size, neg_num].
+        :param neg_logits: A tensor with shape of [batch_size, neg_num].
+        :param istarget: A tensor with shape of [batch_size, neg_num].
+    :return:
+    """
+    loss = tf.reduce_sum(
+        - tf.math.log(tf.sigmoid(pos_logits) + 1e-24) * istarget -
+        tf.math.log(1 - tf.sigmoid(neg_logits) + 1e-24) * istarget
+    ) / tf.reduce_sum(istarget)
+    return loss
+
 def get_loss_with_emb(pos_scores, neg_scores, loss_name, y_pred, y_true, norm_emb, gamma=None):
     """Get loss scores.
     Args:

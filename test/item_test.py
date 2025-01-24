@@ -153,8 +153,6 @@ def cal_tf_idf(file_path):
 
 
 if __name__ == '__main__':
-    # ml1m_path = '/media/he/c6c60fc3-65e5-407b-86ac-16ca6e42848f/he/pycharm-community-2023.2.4_Work/recforpaper/data/ml1m/ml1m.txt'
-    # cal_tf_idf(ml1m_path)
     '''区分训练和推理，推理时不需要mask
     if training:
         last_one = tf.slice(mask, begin=[0, self.seq_len-1, 0], size=[-1, 1, -1])  # (None, 1, 1)
@@ -186,3 +184,6 @@ if __name__ == '__main__':
         transfer_inputs = tf.gather(item_map, inputs['click_seq'])
         generate_inputs = tf.where(inputs['tf_idf'] < random_values, transfer_inputs, inputs['click_seq'])
     '''
+    for i, val in enumerate(reversed([1, 2, 3])):
+        print(i, '_', val)
+
