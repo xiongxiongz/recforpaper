@@ -367,6 +367,14 @@ def gen_negative_samples_except_pos(neg_num, click_seq, max_num):
     return neg_item
 
 
+def gen_negative_samples_include_pos(neg_num, max_num):
+    neg_item = []
+    while len(neg_item) != neg_num:
+        neg = random.randint(1, max_num)
+        neg_item.append(neg)
+    return neg_item
+
+
 """
 def generate_movielens(file_path, neg_num):
     with open(file_path, 'r') as f:

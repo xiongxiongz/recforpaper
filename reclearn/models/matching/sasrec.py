@@ -104,11 +104,10 @@ class SASRec(Model):
         self.neg_num = neg_num
 
     def call(self, inputs, training=True):
-        generate_inputs = inputs['click_seq']  # (None, seq_len)
         # seq info
-        seq_embed = self.item_embedding(generate_inputs)  # (None, seq_len, dim)
+        seq_embed = self.item_embedding(inputs['click_seq'])  # (None, seq_len, dim)
         # mask
-        mask = tf.expand_dims(tf.cast(tf.not_equal(generate_inputs, 0), dtype=tf.float32), axis=-1)  # (None, seq_len, 1)
+        mask = tf.expand_dims(tf.cast(tf.not_equal(inputs['click_seq'], 0), dtype=tf.float32), axis=-1)  # (None, seq_len, 1)
         # tf_idf_encoding = self.tf_idf_embedding(inputs['bucket_id'])  # (None, seq_len, dim)
         # popularity_encoding = self.popularity_embedding(inputs['argue_bucket_id'])  # (None, seq_len, dim)
         # seq_embed += tf_idf_encoding + popularity_encoding

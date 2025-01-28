@@ -21,6 +21,7 @@ from multiprocessing import Process, Queue
 from collections import defaultdict
 import datetime
 from tqdm import tqdm
+import random
 
 FLAGS = flags.FLAGS
 
@@ -65,14 +66,11 @@ def main(argv):
         max_user_num, max_item_num = [int(x) for x in f.readline().strip('\n').split(' ')]
     # TODO: 2. Load Sequence Data
     user2seq = ml.load_user2seq("data/Beauty/Beauty.txt")
-    sampler = WarpSampler(user2seq, FLAGS.neg_num, max_item_num, n_workers=3, queue_size=2)
-    # train_data = ml.load_seq_data(train_path, "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
     train_data = ml.load_txt_data("data/Beauty/Beauty.txt", "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num, max_user_num)
     train_generator = DataGenerator(train_data, FLAGS.batch_size)
-    # val_data = ml.load_seq_data(val_path, "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num)
+    sampler = WarpSampler(user2seq, FLAGS.neg_num, max_item_num, n_workers=3, queue_size=2)
     val_data = ml.load_txt_data("data/Beauty/Beauty.txt", "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num, max_user_num)
     val_generator = DataGenerator(val_data, FLAGS.batch_size)
-    # test_data = ml.load_seq_data(test_path, "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num)
     test_data = ml.load_txt_data("data/Beauty/Beauty.txt", "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num, max_user_num)
     # TODO: 3. Set Model Hyper Parameters.
     model_params = {
