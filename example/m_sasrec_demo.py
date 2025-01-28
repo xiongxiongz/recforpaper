@@ -134,7 +134,6 @@ def transfer_neg_data(sampler, train_data, max_user_num):
     user_get_neg_index = [0] * (max_user_num + 1)
     # 三个集合要替换的负样本列表
     train_data_neg_item = []
-    # 从value_list中取出user_neg_list和user_test_neg_list
     user_neg_list = value_list
     # train:(None, 1)->(None,)
     train_users = np.reshape(train_data['user'], (-1,))
