@@ -6,6 +6,7 @@ Evaluate Functions.
 from reclearn.evaluator.metrics import *
 import numpy as np
 import copy
+import random
 
 
 def evaluate(model, dataset, maxlen, k=10, batch_size=None):

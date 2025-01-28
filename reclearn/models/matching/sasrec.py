@@ -50,25 +50,25 @@ class SASRec(Model):
                                         output_dim=item_dim,
                                         embeddings_initializer='random_normal',
                                         embeddings_regularizer=l2(embed_reg))
-
+        '''
         self.tf_idf_embedding = Embedding(input_dim=6,
                                         input_length=1,
                                         output_dim=item_dim,
                                         embeddings_initializer='random_normal',
                                         embeddings_regularizer=l2(embed_reg))
-        '''
+        
         self.popularity_embedding = Embedding(input_dim=6,
                                           input_length=1,
                                           output_dim=item_dim,
                                           embeddings_initializer='random_normal',
                                           embeddings_regularizer=l2(embed_reg))
-
+        '''
         self.pos_embedding = Embedding(input_dim=seq_len,
                                        input_length=1,
                                        output_dim=item_dim,
                                        embeddings_initializer='random_normal',
                                        embeddings_regularizer=l2(embed_reg))
-        '''
+
         '''
         self.pos_embedding_trainable = self.add_weight(
             shape=[1, seq_len, self.hidden_unit],
