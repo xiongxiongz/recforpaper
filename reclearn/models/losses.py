@@ -118,7 +118,7 @@ def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores):
     # b_probs = tf.nn.softmax(b_probs, axis=-1)
     # reward_loss_divergence = tf.reduce_mean(KLDivergence()(a_probs, b_probs))
     # contra_loss = tf.constant(0.5, dtype=reward_loss_divergence.dtype) * reward_loss_divergence
-    loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores)) - tf.math.log(1 - tf.nn.sigmoid(neg_scores))) / 2
+    loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores) + 1e-24) - tf.math.log(1 - tf.nn.sigmoid(neg_scores) + 1e-24))
     return loss
 
 def cal_rl_loss(logits, k=10):

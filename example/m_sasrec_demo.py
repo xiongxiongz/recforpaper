@@ -24,10 +24,9 @@ from tqdm import tqdm
 
 FLAGS = flags.FLAGS
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 # Setting training parameters
+flags.DEFINE_integer("gpu", 0, "The GPU id.")
 flags.DEFINE_string("file_path", "data/ml-1m/ratings.dat", "file path.")
 flags.DEFINE_string("train_path", "data/ml-1m/ml_seq_train.txt", "train path. If set to None, the program will split the dataset.")
 flags.DEFINE_string("val_path", "data/ml-1m/ml_seq_val.txt", "val path.")
@@ -54,6 +53,8 @@ flags.DEFINE_integer("k", 10, "recall k items at test stage.")
 flags.DEFINE_integer("seed", None, "random seed.")
 
 def main(argv):
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(FLAGS.gpu)
     # TODO: 1. Split Data
     if FLAGS.train_path == "None":
         train_path, val_path, test_path, meta_path = ml.split_seq_data(file_path=FLAGS.file_path)
@@ -112,7 +113,7 @@ def main(argv):
             )
             t2 = time()
             eval_dict = eval_pos_neg(model, test_data, ['hr', 'mrr', 'ndcg'], FLAGS.k)
-            # 每个epoch重新生成训练集、验证集、测试集的负样本
+            # 每个epoch重新生成训练集的负样本
             transfer_neg_data(sampler, train_data, max_user_num)
             # @10, @20, @40
             print('Iteration %d Fit [%.1f s], Evaluate [%.1f s]: HR_10 = %.4f, MRR@10 = %.4f, NDCG@10 = %.4f,'

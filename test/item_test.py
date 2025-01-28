@@ -4,7 +4,48 @@ from tqdm import tqdm
 import tensorflow as tf
 import numpy as np
 
-def process_user_data(user, user_seq, mode, seq_len, neg_num, max_item_num):
+
+def process_user_data(user, user_seq, mode, seq_len, neg_num, max_item_num, user_bucket, user_bin):
+    users, click_seqs, pos_items, neg_items = [], [], [], []
+    user_buckets = []
+    user_bins = []
+    if mode == 'train':
+        # 除了第一个item，其他的item都可以作为正样本
+        for i in range(len(user_seq[user]) - 1):
+            if i + 1 >= seq_len:
+                tmp = user_seq[user][i + 1 - seq_len:i + 1]
+                tmp_bucket = user_bucket[i + 1 - seq_len:i + 1]
+                tmp_bin = user_bin[i + 1 - seq_len:i + 1]
+            else:
+                tmp = [0] * (seq_len - i - 1) + user_seq[user][:i + 1]
+                tmp_bucket = [0] * (seq_len - i - 1) + user_bucket[:i + 1]
+                tmp_bin = [0] * (seq_len - i - 1) + user_bin[:i + 1]
+            neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+            users.append([user])
+            click_seqs.append(tmp)
+            pos_items.append(user_seq[user][i + 1])
+            neg_items.append(neg_item)
+            user_buckets.append(tmp_bucket)
+            user_bins.append(tmp_bin)
+    else:
+        if len(user_seq[user][:-1]) >= seq_len:
+            tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
+            tmp_bucket = user_bucket[:-1][len(user_bucket[:-1]) - seq_len:]
+            tmp_bin = user_bin[:-1][len(user_bin[:-1]) - seq_len:]
+        else:
+            tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
+            tmp_bucket = [0] * (seq_len - len(user_bucket[:-1])) + user_bucket[:-1]
+            tmp_bin = [0] * (seq_len - len(user_bin[:-1])) + user_bin[:-1]
+        neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+        users.append([user])
+        click_seqs.append(tmp)
+        pos_items.append(user_seq[user][-1])
+        neg_items.append(neg_item)
+        user_buckets.append(tmp_bucket)
+        user_bins.append(tmp_bin)
+
+    return users, click_seqs, pos_items, neg_items, user_buckets, user_bins
+def process_user_data_origin(user, user_seq, mode, seq_len, neg_num, max_item_num):
     users, click_seqs, pos_items, neg_items = [], [], [], []
     if mode == 'train':
         # 除了第一个item，其他的item都可以作为正样本

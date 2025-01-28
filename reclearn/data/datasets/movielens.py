@@ -128,33 +128,38 @@ def process_user_data(user, user_seq, mode, seq_len, neg_num, max_item_num, user
     users, click_seqs, pos_items, neg_items = [], [], [], []
     user_buckets = []
     user_bins = []
-    if mode == 'train':
-        # 除了第一个item，其他的item都可以作为正样本
-        for i in range(len(user_seq[user]) - 1):
-            if i + 1 >= seq_len:
-                tmp = user_seq[user][i + 1 - seq_len:i + 1]
-                tmp_bucket = user_bucket[i + 1 - seq_len:i + 1]
-                tmp_bin = user_bin[i + 1 - seq_len:i + 1]
-            else:
-                tmp = [0] * (seq_len - i - 1) + user_seq[user][:i + 1]
-                tmp_bucket = [0] * (seq_len - i - 1) + user_bucket[:i + 1]
-                tmp_bin = [0] * (seq_len - i - 1) + user_bin[:i + 1]
+    if len(user_seq[user][:-1]) >= seq_len:
+        if mode == 'train':
+            generate_seq_count = len(user_seq[user][:-1]) - seq_len + 1
+            for n in range(generate_seq_count):
+                tmp = user_seq[user][n:n + seq_len]
+                tmp_bucket = user_bucket[n:n + seq_len]
+                tmp_bin = user_bin[n:n + seq_len]
+
+                neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+                users.append([user])
+                click_seqs.append(tmp)
+                pos_items.append(user_seq[user][n + seq_len])
+                neg_items.append(neg_item)
+                user_buckets.append(tmp_bucket)
+                user_bins.append(tmp_bin)
+        else:
+            tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
+            tmp_bucket = user_bucket[:-1][len(user_bucket[:-1]) - seq_len:]
+            tmp_bin = user_bin[:-1][len(user_bin[:-1]) - seq_len:]
+
             neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
             users.append([user])
             click_seqs.append(tmp)
-            pos_items.append(user_seq[user][i + 1])
+            pos_items.append(user_seq[user][-1])
             neg_items.append(neg_item)
             user_buckets.append(tmp_bucket)
             user_bins.append(tmp_bin)
     else:
-        if len(user_seq[user][:-1]) >= seq_len:
-            tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
-            tmp_bucket = user_bucket[:-1][len(user_bucket[:-1]) - seq_len:]
-            tmp_bin = user_bin[:-1][len(user_bin[:-1]) - seq_len:]
-        else:
-            tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
-            tmp_bucket = [0] * (seq_len - len(user_bucket[:-1])) + user_bucket[:-1]
-            tmp_bin = [0] * (seq_len - len(user_bin[:-1])) + user_bin[:-1]
+        tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
+        tmp_bucket = [0] * (seq_len - len(user_bucket[:-1])) + user_bucket[:-1]
+        tmp_bin = [0] * (seq_len - len(user_bin[:-1])) + user_bin[:-1]
+
         neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
         users.append([user])
         click_seqs.append(tmp)
@@ -177,6 +182,8 @@ def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num, max_user_num)
     user_tf_idf = defaultdict(list)
     user_popularity = defaultdict(list)
     user_seq = {}
+    user2bucket = {}
+    user2bin = {}
     user_bucket = {}
     user_bin = {}
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -190,7 +197,7 @@ def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num, max_user_num)
     for u in tqdm(user2seq):
         tf_idf, popularity = [], []
         counter = Counter(user2seq[u])
-        for i in counter:
+        for i in user2seq[u]:
             temp_tf_idf = counter[i] / len(user2seq[u]) * math.log(max_user_num / len(item2user[i]))
             tf_idf.append(temp_tf_idf)
             temp_popularity = counter[i] / len(user2seq[u]) * math.exp(len(item2user[i]) / max_user_num)
@@ -202,21 +209,24 @@ def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num, max_user_num)
     quantiles = np.percentile(all_tf_idfs, np.linspace(0, 100, num_bins + 1))
     argue_quantiles = np.percentile(argue_popularity, np.linspace(0, 100, argue_bins + 1))
     for u in tqdm(user2seq):
-        user_bucket[u] = np.digitize(user_tf_idf[u], quantiles, right=True).tolist()
-        user_bin[u] = np.digitize(user_popularity[u], argue_quantiles, right=True).tolist()
+        user2bucket[u] = np.digitize(user_tf_idf[u], quantiles, right=True).tolist()
+        user2bin[u] = np.digitize(user_popularity[u], argue_quantiles, right=True).tolist()
     for user in tqdm(user2seq):
         nfeedback = len(user2seq[user])
         if nfeedback > 3:
             if mode == 'train':
                 user_seq[user] = user2seq[user][:-2]
-                user_bucket[user] = user_bucket[user][:-2]
-                user_bin[user] = user_bin[user][:-2]
+                user_bucket[user] = user2bucket[user][:-2]
+                user_bin[user] = user2bin[user][:-2]
             elif mode == 'val':
                 user_seq[user] = user2seq[user][:-1]
-                user_bucket[user] = user_bucket[user][:-1]
-                user_bin[user] = user_bin[user][:-1]
+                user_bucket[user] = user2bucket[user][:-1]
+                user_bin[user] = user2bin[user][:-1]
             else:
                 user_seq[user] = user2seq[user]
+                user_bucket[user] = user2bucket[user]
+                user_bin[user] = user2bin[user]
+
     with Pool() as pool:
         results = pool.starmap(
             process_user_data,
@@ -231,7 +241,6 @@ def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num, max_user_num)
         neg_items.extend(result[3])
         bucket_ids.extend(result[4])
         argue_bucket_ids.extend(result[5])
-
     data = list(zip(users, click_seqs, pos_items, neg_items, bucket_ids, argue_bucket_ids))
     random.shuffle(data)
     users, click_seqs, pos_items, neg_items, bucket_ids, argue_bucket_ids = zip(*data)
