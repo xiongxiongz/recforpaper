@@ -55,7 +55,7 @@ def build_denoising_autoencoder(input_dim, encoding_dim):
 if __name__ == '__main__':
     epochs = 40
     train_path = "/home/cqj/zzh/recforpaper/data/ml-1m/movie_seq.txt"
-    meta_path = "/home/cqj/zzh/recforpaper/data/ml-1m/ml_seq_meta.txt"
+    meta_path = "/home/cqj/zzh/recforpaper/data/ml-1m/ml1m_seq_meta.txt"
     data, max_item_seq = load_data(train_path)
     with open(meta_path) as f:
         max_user_num, max_item_num = [int(x) for x in f.readline().strip('\n').split('\t')]

@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
   long_description = fh.read()
 
 setuptools.setup(
-  name="reclearn",
+  name="reclearn_mask",
   version="1.1.0",
   author="Ziyao Geng",
   author_email="zggzy1996@163.com",

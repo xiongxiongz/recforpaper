@@ -72,94 +72,6 @@ def process_user_data_origin(user, user_seq, mode, seq_len, neg_num, max_item_nu
 
     return users, click_seqs, pos_items, neg_items
 
-def load_txt_data(file_path, mode, seq_len, neg_num, max_item_num):
-    users, click_seqs, pos_items, neg_items = [], [], [], []
-    usernum = 0
-    itemnum = 0
-    user2seq = defaultdict(list)
-    user_seq = {}
-    with open(file_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-        for line in tqdm(lines):
-            u, i = line.strip().split(' ')
-            u = int(u)
-            i = int(i)
-            usernum = max(u, usernum)
-            itemnum = max(i, itemnum)
-            user2seq[u].append(i)
-        print('usernum: ', usernum)
-        print('itemnum: ', itemnum)
-    for user in tqdm(user2seq):
-        nfeedback = len(user2seq[user])
-        if nfeedback > 3:
-            if mode == 'train':
-                user_seq[user] = user2seq[user][:-2]
-            elif mode == 'val':
-                user_seq[user] = user2seq[user][:-1]
-            else:
-                user_seq[user] = user2seq[user]
-    with Pool() as pool:
-        results = pool.starmap(
-            process_user_data,
-            [(user, user_seq, mode, seq_len, neg_num, max_item_num) for user in user_seq]
-        )
-
-    # 汇总结果
-    for result in tqdm(results):
-        users.extend(result[0])
-        click_seqs.extend(result[1])
-        pos_items.extend(result[2])
-        neg_items.extend(result[3])
-    # for user in tqdm(user_seq):
-    #     if mode == 'train':
-    #         # 除了第一个item，其他的item都可以作为正样本
-    #         for i in range(len(user_seq[user])-1):
-    #             if i + 1 >= seq_len:
-    #                 tmp = user_seq[user][i + 1 - seq_len:i + 1]
-    #             else:
-    #                 tmp = [0] * (seq_len - i - 1) + user_seq[user][:i + 1]
-    #             neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-    #             users.append([user])
-    #             click_seqs.append(tmp)
-    #             pos_items.append(user_seq[user][i + 1])
-    #             neg_items.append(neg_item)
-    #         '''
-    #         if len(user_seq[user][:-1]) >= seq_len:
-    #             for i in range(seq_len-1, len(user_seq[user][:-1])):
-    #                 tmp = user_seq[user][i+1 - seq_len:i+1]
-    #                 neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-    #                 users.append([user])
-    #                 click_seqs.append(tmp)
-    #                 pos_items.append(user_seq[user][i+1])
-    #                 neg_items.append(neg_item)
-    #         else:
-    #             tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
-    #             neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-    #             users.append([user])
-    #             click_seqs.append(tmp)
-    #             pos_items.append(user_seq[user][-1])
-    #             neg_items.append(neg_item)
-    #         '''
-    #     else:
-    #         if len(user_seq[user][:-1]) >= seq_len:
-    #             tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
-    #         else:
-    #             tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
-    #         neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-    #         users.append([user])
-    #         click_seqs.append(tmp)
-    #         pos_items.append(user_seq[user][-1])
-    #         neg_items.append(neg_item)
-    data = list(zip(users, click_seqs, pos_items, neg_items))
-    random.shuffle(data)
-    users, click_seqs, pos_items, neg_items = zip(*data)
-    data = {'user': np.array(users),
-            'click_seq': np.array(click_seqs),
-            'pos_item': np.array(pos_items),
-            'neg_item': np.array(neg_items)
-            }
-    return data
-
 def cal_tf_idf(file_path):
     usernum = 0
     itemnum = 0
@@ -194,8 +106,6 @@ def cal_tf_idf(file_path):
 
 
 if __name__ == '__main__':
-    # ml1m_path = '/media/he/c6c60fc3-65e5-407b-86ac-16ca6e42848f/he/pycharm-community-2023.2.4_Work/recforpaper/data/ml1m/ml1m.txt'
-    # cal_tf_idf(ml1m_path)
     '''区分训练和推理，推理时不需要mask
     if training:
         last_one = tf.slice(mask, begin=[0, self.seq_len-1, 0], size=[-1, 1, -1])  # (None, 1, 1)

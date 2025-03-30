@@ -27,12 +27,13 @@ FLAGS = flags.FLAGS
 
 
 # Setting training parameters
+flags.DEFINE_string("dataset", "ml1m", "The dataset name.")
 flags.DEFINE_integer("gpu", 0, "The GPU id.")
 flags.DEFINE_string("file_path", "data/ml-1m/ratings.dat", "file path.")
 flags.DEFINE_string("train_path", "data/ml-1m/ml_seq_train.txt", "train path. If set to None, the program will split the dataset.")
 flags.DEFINE_string("val_path", "data/ml-1m/ml_seq_val.txt", "val path.")
 flags.DEFINE_string("test_path", "data/ml-1m/ml_seq_test.txt", "test path.")
-flags.DEFINE_string("meta_path", "data/ml-1m/ml_seq_meta.txt", "meta path.")
+flags.DEFINE_string("meta_path", "data/ml-1m/ml1m_seq_meta.txt", "meta path.")
 flags.DEFINE_integer("item_dim", 64, "The size of item embedding dimension.")
 flags.DEFINE_integer("user_dim", 50, "The size of user embedding dimension.")
 flags.DEFINE_float("embed_reg", 0.0, "The value of embedding regularization.")
@@ -57,21 +58,18 @@ def main(argv):
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
     os.environ['CUDA_VISIBLE_DEVICES'] = str(FLAGS.gpu)
     # TODO: 1. Split Data
-    if FLAGS.train_path == "None":
-        train_path, val_path, test_path, meta_path = ml.split_seq_data(file_path=FLAGS.file_path)
-    else:
-        train_path, val_path, test_path, meta_path = FLAGS.train_path, FLAGS.val_path, FLAGS.test_path, FLAGS.meta_path
-    # with open(meta_path) as f:
-    with open("data/Beauty/Beauty_seq_meta.txt") as f:
+    meta_file = "data/" + FLAGS.dataset + "/" + FLAGS.dataset + "_seq_meta.txt"
+    interaction_file = "data/" + FLAGS.dataset + "/" + FLAGS.dataset + ".txt"
+    with open(meta_file) as f:
         max_user_num, max_item_num = [int(x) for x in f.readline().strip('\n').split(' ')]
     # TODO: 2. Load Sequence Data
-    user2seq = ml.load_user2seq("data/Beauty/Beauty.txt")
-    train_data = ml.load_txt_data("data/Beauty/Beauty.txt", "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num, max_user_num)
+    # user2seq = ml.load_user2seq(interaction_file)
+    train_data = ml.load_txt_data(interaction_file, "train", FLAGS.seq_len, FLAGS.neg_num, max_item_num, max_user_num)
     train_generator = DataGenerator(train_data, FLAGS.batch_size)
-    sampler = WarpSampler(user2seq, FLAGS.neg_num, max_item_num, n_workers=3, queue_size=2)
-    val_data = ml.load_txt_data("data/Beauty/Beauty.txt", "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num, max_user_num)
+    # sampler = WarpSampler(user2seq, FLAGS.neg_num, max_item_num, n_workers=3, queue_size=2)
+    val_data = ml.load_txt_data(interaction_file, "val", FLAGS.seq_len, FLAGS.neg_num, max_item_num, max_user_num)
     val_generator = DataGenerator(val_data, FLAGS.batch_size)
-    test_data = ml.load_txt_data("data/Beauty/Beauty.txt", "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num, max_user_num)
+    test_data = ml.load_txt_data(interaction_file, "test", FLAGS.seq_len, FLAGS.test_neg_num, max_item_num, max_user_num)
     # TODO: 3. Set Model Hyper Parameters.
     model_params = {
         'item_num': max_item_num + 1,
@@ -99,6 +97,7 @@ def main(argv):
     # TODO: 5. Fit Model
     try:
         results = []
+        t = 0.0
         for epoch in range(1, FLAGS.epochs + 1):
             t1 = time()
             model.fit(
@@ -110,22 +109,24 @@ def main(argv):
                 # batch_size=FLAGS.batch_size
             )
             t2 = time()
-            eval_dict = eval_pos_neg(model, test_data, ['hr', 'mrr', 'ndcg'], FLAGS.k)
+            t += t2 - t1
+            eval_dict = eval_pos_neg(model, test_data, ['hr', 'mrr', 'ndcg'], max_item_num, FLAGS.k)
             # 每个epoch重新生成训练集的负样本
-            transfer_neg_data(sampler, train_data, max_user_num)
+            # transfer_neg_data(sampler, train_data, max_user_num)
             # @10, @20, @40
-            print('Iteration %d Fit [%.1f s], Evaluate [%.1f s]: HR_10 = %.4f, MRR@10 = %.4f, NDCG@10 = %.4f,'
+            print('Iteration %d Fit [%.1f s], Evaluate [%.1f s]: HR@10 = %.4f, MRR@10 = %.4f, NDCG@10 = %.4f,'
                   ' HR@20 = %.4f, MRR@20 = %.4f, NDCG@20 = %.4f, HR@40 = %.4f, MRR@40 = %.4f, NDCG@40 = %.4f'
-                  % (epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg'], eval_dict['hr_20'], eval_dict['mrr_20'], eval_dict['ndcg_20'], eval_dict['hr_40'], eval_dict['mrr_40'], eval_dict['ndcg_40']))
-            results.append([epoch, t2 - t1, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg'], eval_dict['hr_20'], eval_dict['mrr_20'], eval_dict['ndcg_20'], eval_dict['hr_40'], eval_dict['mrr_40'], eval_dict['ndcg_40']])
+                  % (epoch, t, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg'], eval_dict['hr_20'], eval_dict['mrr_20'], eval_dict['ndcg_20'], eval_dict['hr_40'], eval_dict['mrr_40'], eval_dict['ndcg_40']))
+            results.append([epoch, t, time() - t2, eval_dict['hr'], eval_dict['mrr'], eval_dict['ndcg'], eval_dict['hr_20'], eval_dict['mrr_20'], eval_dict['ndcg_20'], eval_dict['hr_40'], eval_dict['mrr_40'], eval_dict['ndcg_40']])
         # write logs
         pd.DataFrame(results, columns=['Iteration', 'fit_time', 'evaluate_time', 'hr@10', 'mrr@10', 'ndcg@10', 'hr@20', 'mrr@20', 'ndcg@20', 'hr@40', 'mrr@40', 'ndcg@40']).\
             to_csv("logs/SASRec_log_{}_maxlen_{}_blocks_{}_heads_{}.csv".format(start_time, FLAGS.seq_len, FLAGS.blocks, FLAGS.num_heads), index=False)
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        model.save(model_name, save_format='tf')
-        sampler.close()
+        # model.save(model_name, save_format='tf')
+        # sampler.close()
+        print("Done!")
 
 
 def transfer_neg_data(sampler, train_data, max_user_num):

@@ -91,7 +91,7 @@ if __name__ == "__main__":
     train_path = "/home/cqj/zzh/recforpaper/data/ml-1m/ml_seq_train.txt"
     val_path = "/home/cqj/zzh/recforpaper/data/ml-1m/ml_seq_val.txt"
     test_path = "/home/cqj/zzh/recforpaper/data/ml-1m/ml_seq_test.txt"
-    meta_path = "/home/cqj/zzh/recforpaper/data/ml-1m/ml_seq_meta.txt"
+    meta_path = "/home/cqj/zzh/recforpaper/data/ml-1m/ml1m_seq_meta.txt"
     train_count_path = "/home/cqj/zzh/recforpaper/data/ml-1m/movie_view_count.txt"
     test_count_path = "/home/cqj/zzh/recforpaper/data/ml-1m/movie_view_count_test.txt"
     with open(meta_path) as f:

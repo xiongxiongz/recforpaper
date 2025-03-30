@@ -25,7 +25,7 @@ def get_loss(pos_scores, neg_scores, loss_name, gamma=None):
     return loss
 
 
-def get_loss_with_rl(pos_scores, neg_scores, loss_name, gamma=None):
+def get_loss_with_xx(pos_scores, neg_scores, user_info, loss_name, gamma=None):
     """Get loss scores.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, 1].
@@ -40,7 +40,7 @@ def get_loss_with_rl(pos_scores, neg_scores, loss_name, gamma=None):
     elif loss_name == 'hinge_loss':
         loss = hinge_loss(pos_scores, neg_scores, gamma)
     else:
-        loss = binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores)
+        loss = binary_cross_entropy_loss_with_xx(pos_scores, neg_scores, user_info)
     return loss
 
 
@@ -104,7 +104,7 @@ def binary_cross_entropy_loss(pos_scores, neg_scores):
     return loss
 
 
-def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores):
+def binary_cross_entropy_loss_with_xx(pos_scores, neg_scores, user_info):
     """binary cross entropy loss.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, neg_num].
@@ -112,13 +112,14 @@ def binary_cross_entropy_loss_with_rl_loss(pos_scores, neg_scores):
     :return:
     """
     # KL散度
-    # a_probs = probs[0]
+    # a_probs = pos_scores
     # a_probs = tf.nn.softmax(a_probs, axis=-1)
-    # b_probs = probs[1]
+    # b_probs = user_info
     # b_probs = tf.nn.softmax(b_probs, axis=-1)
     # reward_loss_divergence = tf.reduce_mean(KLDivergence()(a_probs, b_probs))
-    # contra_loss = tf.constant(0.5, dtype=reward_loss_divergence.dtype) * reward_loss_divergence
-    loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores) + 1e-24) - tf.math.log(1 - tf.nn.sigmoid(neg_scores) + 1e-24))
+    # contra_loss = reward_loss_divergence
+    # loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores)) - tf.math.log(1 - tf.nn.sigmoid(neg_scores)))
+    loss = infonce_loss(pos_scores, neg_scores)
     return loss
 
 def cal_rl_loss(logits, k=10):
@@ -147,7 +148,7 @@ def binary_cross_entropy_loss_with_emb(pos_scores, neg_scores, y_pred, y_true, n
     return alpha * base_loss + beta * reconstruct_loss
 
 
-def infonce_loss(pos_scores, neg_scores, temperature=0.7):
+def infonce_loss(pos_scores, neg_scores, temperature=1.0):
     # 正样本 logits
     pos_logits = pos_scores / temperature
 

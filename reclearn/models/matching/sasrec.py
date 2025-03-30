@@ -9,7 +9,7 @@ from tensorflow.keras import Model, regularizers
 from tensorflow.keras.layers import Layer, Dense, LayerNormalization, Dropout, Embedding, Input, Conv1D, DepthwiseConv2D
 from tensorflow.keras.regularizers import l2
 from reclearn.layers import TransformerEncoder
-from reclearn.models.losses import get_loss, get_loss_with_rl
+from reclearn.models.losses import get_loss, get_loss_with_xx
 from reclearn.layers.core import TransformerEncoder2
 
 
@@ -34,14 +34,6 @@ class SASRec(Model):
         :param seed: A Python integer to use as random seed.
         """
         super(SASRec, self).__init__()
-        '''
-        self.genre_embedding = Embedding(
-                                        input_dim=19,
-                                        input_length=1,
-                                        output_dim=embed_dim,
-                                        embeddings_initializer='random_normal',
-                                        embeddings_regularizer=l2(embed_reg))
-        '''
 
         # item embedding
         self.item_embedding = Embedding(input_dim=item_num,
@@ -67,16 +59,6 @@ class SASRec(Model):
                                        output_dim=item_dim,
                                        embeddings_initializer='random_normal',
                                        embeddings_regularizer=l2(embed_reg))
-        '''
-        self.pos_embedding_trainable = self.add_weight(
-            shape=[1, seq_len, item_dim+user_dim],
-            initializer='glorot_uniform',
-            trainable=True,
-            name='pos_embedding_trainable'
-        )
-        self.fc = Dense((item_dim+user_dim) // 2, activation='relu')
-        self.gate_dense = Dense(item_dim+user_dim, activation='sigmoid')
-        '''
         '''
         self.dense = Dense(units=user_dim // 4, activation="relu")
         self.user_dropout = Dropout(0.3)
@@ -111,13 +93,6 @@ class SASRec(Model):
         # tf_idf_encoding = self.tf_idf_embedding(inputs['bucket_id'])  # (None, seq_len, dim)
         # popularity_encoding = self.popularity_embedding(inputs['argue_bucket_id'])  # (None, seq_len, dim)
         # seq_embed += tf_idf_encoding + popularity_encoding
-        # pos encoding
-        # squeeze = tf.reduce_mean(seq_embed, axis=1)
-        # excitation = self.fc(squeeze)
-        # gate = self.gate_dense(excitation)
-        # gate = tf.expand_dims(gate, axis=1)
-        # gate_pos_embed = gate * self.pos_embedding_trainable
-        # seq_embed += gate_pos_embed
 
         pos_encoding = tf.expand_dims(self.pos_embedding(tf.range(self.seq_len)), axis=0)  # (1, seq_len, embed_dim)
         seq_embed += pos_encoding  # (None, seq_len, embed_dim), broadcasting
@@ -126,27 +101,8 @@ class SASRec(Model):
         origin_user_embed = self.dense(origin_user_encode)
         origin_user_embed = self.user_dropout(origin_user_embed)
         origin_user_embed = self.conv(origin_user_embed)
-        user_embed = origin_user_embed + tf_idf_encoding + popularity_encoding
-        seq_embed = tf.concat([seq_embed, user_embed], axis=-1)  # (None, seq_len, item_dim + user_dim)
-        '''
-        '''
-        origin_user_encode = self.user_embedding(inputs['user'])  # (None, 1, user_dim)
-        origin_user_embed = self.dense(origin_user_encode)
-        origin_user_embed = self.user_dropout(origin_user_embed)
-        origin_user_embed = self.conv(origin_user_embed)
         user_embed = tf.tile(origin_user_embed, [1, self.seq_len, 1])  # (None, seq_len, user_dim)
         seq_embed = tf.concat([seq_embed, user_embed], axis=-1)  # (None, seq_len, item_dim + user_dim)
-        squeeze = tf.reduce_mean(seq_embed, axis=1)
-        excitation = self.fc(squeeze)
-        gate = self.gate_dense(excitation)
-        gate = tf.expand_dims(gate, axis=1)
-        gate_pos_embed = gate * self.pos_embedding_trainable
-        seq_embed += gate_pos_embed
-        '''
-        '''
-        genre_encoding = self.genre_embedding(inputs['genre_index_seq'])       # (batch, seq_len, 6, emb_dim)
-        genre_encoding = tf.reduce_mean(genre_encoding, axis=2)       # (batch, seq_len, emb_dim)
-        seq_embed += genre_encoding
         '''
         seq_embed = self.dropout(seq_embed)
         att_outputs = seq_embed  # (None, seq_len, embed_dim)
@@ -156,7 +112,7 @@ class SASRec(Model):
             att_outputs = block([att_outputs, mask])  # (None, seq_len, embed_dim)
             att_outputs *= mask
         # user_info. There are two ways to get the user vector.
-        # user_info = tf.reduce_mean(att_outputs, axis=1)  # (None, dim)
+        # mean_user_info = tf.reduce_mean(att_outputs, axis=1, keepdims=True)  # (None, 1, dim)
         user_info = tf.slice(att_outputs, begin=[0, self.seq_len-1, 0], size=[-1, 1, -1])  # (None, 1, embed_dim)
         # item info contain pos_info and neg_info.
         pos_info = tf.expand_dims(self.item_embedding(tf.reshape(inputs['pos_item'], [-1, ])), axis=1)  # (None, 1, dim)
@@ -184,10 +140,9 @@ class SASRec(Model):
                                    axis=-1)  # (None, neg_num)
         '''
         # loss
-        # self.add_loss(get_loss(pos_scores, neg_scores, self.loss_name, self.gamma))
-        logits = tf.concat([neg_scores, pos_scores], axis=-1)
-        self.add_loss(get_loss_with_rl(pos_scores, neg_scores, self.loss_name, self.gamma))
-        return logits
+        # logits = tf.concat([neg_scores, pos_scores], axis=-1)
+        self.add_loss(get_loss_with_xx(pos_scores, neg_scores, user_info, self.loss_name, self.gamma))
+        return user_info
 
     def get_embedding_weights(self):
         return self.item_embedding.trainable_variables[0]
