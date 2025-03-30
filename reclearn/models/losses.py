@@ -25,7 +25,7 @@ def get_loss(pos_scores, neg_scores, loss_name, gamma=None):
     return loss
 
 
-def get_loss_with_xx(pos_scores, neg_scores, user_info, loss_name, gamma=None):
+def get_loss_with_xx(pos_scores, neg_scores, istarget, user_info, loss_name, gamma=None):
     """Get loss scores.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, 1].
@@ -40,7 +40,7 @@ def get_loss_with_xx(pos_scores, neg_scores, user_info, loss_name, gamma=None):
     elif loss_name == 'hinge_loss':
         loss = hinge_loss(pos_scores, neg_scores, gamma)
     else:
-        loss = binary_cross_entropy_loss_with_xx(pos_scores, neg_scores, user_info)
+        loss = binary_cross_entropy_loss_with_xx(pos_scores, neg_scores, istarget, user_info)
     return loss
 
 
@@ -104,7 +104,15 @@ def binary_cross_entropy_loss(pos_scores, neg_scores):
     return loss
 
 
-def binary_cross_entropy_loss_with_xx(pos_scores, neg_scores, user_info):
+def binary_cross_entropy_with_istarget(pos_scores, neg_scores, istarget):
+    loss = tf.reduce_sum(
+        - tf.math.log(tf.sigmoid(pos_scores) + 1e-24) * istarget -
+        tf.math.log(1 - tf.sigmoid(neg_scores) + 1e-24) * istarget
+    ) / tf.reduce_sum(istarget)
+    return loss
+
+
+def binary_cross_entropy_loss_with_xx(pos_scores, neg_scores, istarget, user_info):
     """binary cross entropy loss.
     Args:
         :param pos_scores: A tensor with shape of [batch_size, neg_num].
@@ -119,7 +127,7 @@ def binary_cross_entropy_loss_with_xx(pos_scores, neg_scores, user_info):
     # reward_loss_divergence = tf.reduce_mean(KLDivergence()(a_probs, b_probs))
     # contra_loss = reward_loss_divergence
     # loss = tf.reduce_mean(- tf.math.log(tf.nn.sigmoid(pos_scores)) - tf.math.log(1 - tf.nn.sigmoid(neg_scores)))
-    loss = infonce_loss(pos_scores, neg_scores)
+    loss = infonce_loss(pos_scores, neg_scores, istarget)
     return loss
 
 def cal_rl_loss(logits, k=10):
@@ -148,7 +156,7 @@ def binary_cross_entropy_loss_with_emb(pos_scores, neg_scores, y_pred, y_true, n
     return alpha * base_loss + beta * reconstruct_loss
 
 
-def infonce_loss(pos_scores, neg_scores, temperature=1.0):
+def infonce_loss(pos_scores, neg_scores, istarget, temperature=1.0):
     # 正样本 logits
     pos_logits = pos_scores / temperature
 
@@ -160,9 +168,8 @@ def infonce_loss(pos_scores, neg_scores, temperature=1.0):
     labels = tf.zeros(shape=(tf.shape(pos_scores)[0],), dtype=tf.int32)
 
     # 使用交叉熵计算对比损失
-    contrastive_loss = tf.reduce_mean(
-        tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
-    )
+    cross_entropy_result = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits) * istarget
+    contrastive_loss = tf.reduce_sum(cross_entropy_result) / tf.reduce_sum(istarget)
 
     return contrastive_loss
 

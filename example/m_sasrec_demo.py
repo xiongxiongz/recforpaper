@@ -121,8 +121,6 @@ def main(argv):
         # write logs
         pd.DataFrame(results, columns=['Iteration', 'fit_time', 'evaluate_time', 'hr@10', 'mrr@10', 'ndcg@10', 'hr@20', 'mrr@20', 'ndcg@20', 'hr@40', 'mrr@40', 'ndcg@40']).\
             to_csv("logs/SASRec_log_{}_maxlen_{}_blocks_{}_heads_{}.csv".format(start_time, FLAGS.seq_len, FLAGS.blocks, FLAGS.num_heads), index=False)
-    except Exception as e:
-        print(f"An error occurred: {e}")
     finally:
         # model.save(model_name, save_format='tf')
         # sampler.close()

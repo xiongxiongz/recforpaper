@@ -9,7 +9,7 @@ from tensorflow.keras import Model, regularizers
 from tensorflow.keras.layers import Layer, Dense, LayerNormalization, Dropout, Embedding, Input, Conv1D, DepthwiseConv2D
 from tensorflow.keras.regularizers import l2
 from reclearn.layers import TransformerEncoder
-from reclearn.models.losses import get_loss, get_loss_with_xx
+from reclearn.models.losses import get_loss, get_loss_with_xx, binary_cross_entropy_with_istarget
 from reclearn.layers.core import TransformerEncoder2
 
 
@@ -54,7 +54,7 @@ class SASRec(Model):
                                           embeddings_initializer='random_normal',
                                           embeddings_regularizer=l2(embed_reg))
         '''
-        self.pos_embedding = Embedding(input_dim=seq_len,
+        self.pos_embedding = Embedding(input_dim=seq_len+1,
                                        input_length=1,
                                        output_dim=item_dim,
                                        embeddings_initializer='random_normal',
@@ -84,17 +84,29 @@ class SASRec(Model):
         tf.random.set_seed(seed)
         # neg_num
         self.neg_num = neg_num
+        # 构建cls token
+        self.cls_token = tf.Variable(
+            initial_value=tf.random.normal(shape=(1, 1, item_dim)),
+            trainable=True,
+            name="cls_token")
 
     def call(self, inputs, training=True):
+        # 构建cls token
+        cls_embed = tf.tile(self.cls_token, [tf.shape(inputs['click_seq'])[0], 1, 1])
         # seq info
         seq_embed = self.item_embedding(inputs['click_seq'])  # (None, seq_len, dim)
+        # 拼接cls_embed和seq_embed
+        seq_embed = tf.concat([cls_embed, seq_embed], axis=1)
         # mask
-        mask = tf.expand_dims(tf.cast(tf.not_equal(inputs['click_seq'], 0), dtype=tf.float32), axis=-1)  # (None, seq_len, 1)
+        mask = tf.cast(tf.not_equal(inputs['click_seq'], 0), dtype=tf.float32)
+        mask = tf.concat([tf.ones([tf.shape(inputs['click_seq'])[0], 1]), mask], axis=-1)
+        mask = tf.expand_dims(mask, axis=-1)  # (None, seq_len, 1)
         # tf_idf_encoding = self.tf_idf_embedding(inputs['bucket_id'])  # (None, seq_len, dim)
         # popularity_encoding = self.popularity_embedding(inputs['argue_bucket_id'])  # (None, seq_len, dim)
         # seq_embed += tf_idf_encoding + popularity_encoding
 
-        pos_encoding = tf.expand_dims(self.pos_embedding(tf.range(self.seq_len)), axis=0)  # (1, seq_len, embed_dim)
+        # pos的长度加上1（cls token）
+        pos_encoding = tf.expand_dims(self.pos_embedding(tf.range(self.seq_len+1)), axis=0)  # (1, seq_len, embed_dim)
         seq_embed += pos_encoding  # (None, seq_len, embed_dim), broadcasting
         '''
         origin_user_encode = self.user_embedding(inputs['user'])  # (None, 1, user_dim)
@@ -115,7 +127,9 @@ class SASRec(Model):
         # mean_user_info = tf.reduce_mean(att_outputs, axis=1, keepdims=True)  # (None, 1, dim)
         user_info = tf.slice(att_outputs, begin=[0, self.seq_len-1, 0], size=[-1, 1, -1])  # (None, 1, embed_dim)
         # item info contain pos_info and neg_info.
-        pos_info = tf.expand_dims(self.item_embedding(tf.reshape(inputs['pos_item'], [-1, ])), axis=1)  # (None, 1, dim)
+        # 当用户序列长度不足时，正样本也会填充，需要mask掉
+        istarget = tf.reshape(tf.cast(tf.not_equal(inputs['pos_item'], 0), dtype=tf.float32), [-1, 1])
+        pos_info = self.item_embedding(inputs['pos_item'])  # (None, 1, dim)
         neg_info = self.item_embedding(inputs['neg_item'])  # (None, neg_num, dim)
         # norm
         if self.use_l2norm:
@@ -125,6 +139,8 @@ class SASRec(Model):
 
         pos_scores = tf.reduce_sum(tf.multiply(user_info, pos_info), axis=-1)  # (None, 1)
         neg_scores = tf.reduce_sum(tf.multiply(user_info, neg_info), axis=-1)  # (None, neg_num)
+        pos_logits = tf.reshape(pos_scores, [-1, 1])
+        neg_logits = tf.reshape(neg_scores, [-1, 1])
         '''
         neg_num = neg_info.shape[1]
         if neg_num is None:
@@ -141,7 +157,7 @@ class SASRec(Model):
         '''
         # loss
         # logits = tf.concat([neg_scores, pos_scores], axis=-1)
-        self.add_loss(get_loss_with_xx(pos_scores, neg_scores, user_info, self.loss_name, self.gamma))
+        self.add_loss(binary_cross_entropy_with_istarget(pos_logits, neg_logits, istarget))
         return user_info
 
     def get_embedding_weights(self):

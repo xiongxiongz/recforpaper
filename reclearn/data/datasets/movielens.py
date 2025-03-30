@@ -129,8 +129,49 @@ def process_user_data(user, user_seq, mode, seq_len, neg_num, max_item_num, user
     user_buckets = []
     user_bins = []
     if mode == 'train':
+        # 将每个用户的序列划分为多个序列，每个序列的长度为seq_len(训练集划分方式1)
+        ## 当序列长度大于等于seq_len
+        if len(user_seq[user][:-1]) >= seq_len:
+            num_sep_seq = len(user_seq[user][:-1]) // seq_len + (1 if len(user_seq[user][:-1]) % seq_len != 0 else 0)
+            for i in range(num_sep_seq):
+                if i == num_sep_seq - 1:
+                    has = len(user_seq[user][:-1][i * seq_len:])
+                    fill = seq_len - has
+                    tmp = [0] * fill + user_seq[user][:-1][i * seq_len:]
+                    tmp_bucket = [0] * fill + user_bucket[:-1][i * seq_len:]
+                    tmp_bin = [0] * fill + user_bin[:-1][i * seq_len:]
+                    # 取正样本
+                    pos_items.append([0] * fill + user_seq[user][i * seq_len + 1:])
+                else:
+                    tmp = user_seq[user][i * seq_len:(i + 1) * seq_len]
+                    tmp_bucket = user_bucket[i * seq_len:(i + 1) * seq_len]
+                    tmp_bin = user_bin[i * seq_len:(i + 1) * seq_len]
+                    # 取正样本
+                    pos_items.append(user_seq[user][i * seq_len + 1:(i + 1) * seq_len + 1])
 
-        # 除了第一个item，其他的item都可以作为正样本
+                neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+                users.append([user])
+                click_seqs.append(tmp)
+                neg_items.append(neg_item)
+                user_buckets.append(tmp_bucket)
+                user_bins.append(tmp_bin)
+        else:
+            ## 当序列长度小于seq_len
+            fill = seq_len - len(user_seq[user][:-1])
+            tmp = [0] * fill + user_seq[user][:-1]
+            tmp_bucket = [0] * fill + user_bucket[:-1]
+            tmp_bin = [0] * fill + user_bin[:-1]
+
+            neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
+            users.append([user])
+            click_seqs.append(tmp)
+            pos_items.append([0] * fill + user_seq[user][1:])
+            neg_items.append(neg_item)
+            user_buckets.append(tmp_bucket)
+            user_bins.append(tmp_bin)
+
+        '''    
+        # 除了第一个item，其他的item都可以作为正样本(训练集划分方式2)
         for i in range(len(user_seq[user]) - 1):
             if i + 1 >= seq_len:
                 tmp = user_seq[user][i + 1 - seq_len:i + 1]
@@ -148,7 +189,9 @@ def process_user_data(user, user_seq, mode, seq_len, neg_num, max_item_num, user
             user_buckets.append(tmp_bucket)
             user_bins.append(tmp_bin)
         '''
-        # 只取最后一个item作为正样本
+
+        '''
+        # 只取最后一个item作为正样本(训练集划分方式3)
         if len(user_seq[user][:-1]) >= seq_len:
             tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
             tmp_bucket = user_bucket[:-1][len(user_bucket[:-1]) - seq_len:]
@@ -170,18 +213,20 @@ def process_user_data(user, user_seq, mode, seq_len, neg_num, max_item_num, user
             tmp = user_seq[user][:-1][len(user_seq[user][:-1]) - seq_len:]
             tmp_bucket = user_bucket[:-1][len(user_bucket[:-1]) - seq_len:]
             tmp_bin = user_bin[:-1][len(user_bin[:-1]) - seq_len:]
+            pos_items.append(user_seq[user][len(user_seq[user]) - seq_len:])
         else:
-            tmp = [0] * (seq_len - len(user_seq[user][:-1])) + user_seq[user][:-1]
-            tmp_bucket = [0] * (seq_len - len(user_bucket[:-1])) + user_bucket[:-1]
-            tmp_bin = [0] * (seq_len - len(user_bin[:-1])) + user_bin[:-1]
-        if mode == 'val':
-            neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
-        else:
+            fill = seq_len - len(user_seq[user][:-1])
+            tmp = [0] * fill + user_seq[user][:-1]
+            tmp_bucket = [0] * fill + user_bucket[:-1]
+            tmp_bin = [0] * fill + user_bin[:-1]
+            pos_items.append([0] * fill + user_seq[user][1:])
+
+        if mode == 'test':
             # mode == 'test'，以下负样本不会使用，此处只是为了保持输入数据格式一致
-            neg_item = [user_seq[user][-1]]
+            pos_items = [user_seq[user][-1]]
         users.append([user])
         click_seqs.append(tmp)
-        pos_items.append(user_seq[user][-1])
+        neg_item = gen_negative_samples_except_pos(neg_num, user_seq[user], max_item_num)
         neg_items.append(neg_item)
         user_buckets.append(tmp_bucket)
         user_bins.append(tmp_bin)
